@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blockade X - Tournament Engine</title>
+    <title>Blockade X - Smart Robot Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -16,11 +16,11 @@
 
     <div id="menu-screen" class="screen active">
         <h1 class="game-title">BLOCKADE X</h1>
-        <p class="game-subtitle">GRAND TOURNAMENT EDITION</p>
+        <p class="game-subtitle">SMART ROBOT TOURNAMENT</p>
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="openColorSelection('pass')">PASS & PLAY</button>
-            <button class="pixel-btn blue" onclick="openColorSelection('ai')">VS AI BOT</button>
+            <button class="pixel-btn blue" onclick="openColorSelection('ai')">VS AI ROBOT 🤖</button>
             <button class="pixel-btn orange" onclick="startRandomMatchmaking()">ONLINE PVP (RANDOM)</button>
             <button class="pixel-btn red" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
@@ -36,7 +36,7 @@
     </div>
 
     <div id="sandbox-host-screen" class="screen">
-        <h2 class="screen-title">ROOM HOOKED</h2>
+        <h2 class="screen-title">ROOM CREATED</h2>
         <div class="pixel-card">
             <p style="font-size: 10px; margin-bottom: 15px;">SHARE 5-LETTER CODE:</p>
             <div id="sandbox-code-display" class="upi-box" style="font-size: 22px; color: #ff9b13; letter-spacing: 4px;">-----</div>
@@ -58,9 +58,9 @@
         <h2 class="screen-title" id="match-status-text">INITIALIZING...</h2>
         <div class="pixel-card">
             <div class="spinning-dice" id="match-loader">⚔️</div>
-            <p id="match-sub-status" style="font-size: 9px; margin-top: 20px; line-height: 1.6; color: #00beff;">SCANNING THE STREAM FOR ONLINE USERS...</p>
+            <p id="match-sub-status" style="font-size: 9px; margin-top: 20px; line-height: 1.6; color: #00beff;">SCANNING STREAM FOR ONLINE PLAYERS...</p>
         </div>
-        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL SPEED</button>
+        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL SEARCH</button>
     </div>
 
     <div id="color-screen" class="screen">
@@ -95,14 +95,14 @@
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
-            <div id="game-live-notice" class="action-logs-footer">WALLS MEASURE EXACTLY 2-BLOCKS IN LENGTH!</div>
+            <div id="game-live-notice" class="action-logs-footer">ROBOT IS THINKING AHEAD... BEWARE!</div>
         </div>
     </div>
 
     <div id="victory-screen" class="screen">
         <canvas id="firecracker-canvas"></canvas>
         <div class="victory-content pixel-card">
-            <h1 class="victory-title">VICTORY SPLASH!</h1>
+            <h1 class="victory-title">CONGRATULATIONS!</h1>
             <p id="winner-declaration-text" style="font-size: 10px; color: #8edc3a; margin-bottom: 25px; line-height: 1.6;">CHAMPION CAPTURES THE MATRIX</p>
             
             <div class="victory-actions">
@@ -123,6 +123,5 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
 </body>
 </html>
