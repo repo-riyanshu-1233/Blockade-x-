@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blockade X - Ultimate Network Arcade</title>
+    <title>Blockade X - Tournament Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="game-toast" class="toast-popup hide">⚠️ SYSTEM READY</div>
+    <div id="game-toast" class="toast-popup hide">⚠️ SYSTEM ACTIVE</div>
 
     <button id="help-btn" class="pixel-btn orange compact" onclick="toggleModal('help-modal', true)">HELP ?</button>
 
     <div id="menu-screen" class="screen active">
         <h1 class="game-title">BLOCKADE X</h1>
-        <p class="game-subtitle">9X9 MULTIPLAYER NETWORK</p>
+        <p class="game-subtitle">GRAND TOURNAMENT EDITION</p>
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="openColorSelection('pass')">PASS & PLAY</button>
@@ -27,7 +27,7 @@
     </div>
 
     <div id="sandbox-menu-screen" class="screen">
-        <h2 class="screen-title">SANDBOX ROOMS</h2>
+        <h2 class="screen-title">SANDBOX HUBS</h2>
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="initiateSandboxHost()">CREATE 5-CH CODE</button>
             <button class="pixel-btn blue" onclick="showScreen('sandbox-join-screen')">ENTER 5-CH CODE</button>
@@ -36,35 +36,35 @@
     </div>
 
     <div id="sandbox-host-screen" class="screen">
-        <h2 class="screen-title">ROOM CREATED</h2>
+        <h2 class="screen-title">ROOM HOOKED</h2>
         <div class="pixel-card">
-            <p style="font-size: 10px; margin-bottom: 15px;">5-LETTER SANDBOX CODE:</p>
-            <div id="sandbox-code-display" class="upi-box" style="font-size: 20px; color: #ff9b13; letter-spacing: 4px;">-----</div>
+            <p style="font-size: 10px; margin-bottom: 15px;">SHARE 5-LETTER CODE:</p>
+            <div id="sandbox-code-display" class="upi-box" style="font-size: 22px; color: #ff9b13; letter-spacing: 4px;">-----</div>
         </div>
-        <p style="font-size: 9px; color: #8edc3a; margin-top: 15px;">Waiting for your friend to enter code...</p>
+        <p style="font-size: 9px; color: #8edc3a; margin-top: 20px;">Waiting for companion to link...</p>
         <button class="pixel-btn red compact" style="margin-top:20px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
     <div id="sandbox-join-screen" class="screen">
-        <h2 class="screen-title">JOIN SANDBOX</h2>
+        <h2 class="screen-title">JOIN PRIVATE</h2>
         <div class="pixel-card input-card">
-            <input type="text" id="sandbox-input-code" placeholder="CODE (EG: X7R29)" maxlength="5" style="text-transform: uppercase;">
+            <input type="text" id="sandbox-input-code" placeholder="ENTER 5-CHAR CODE" maxlength="5" style="text-transform: uppercase;">
         </div>
-        <button class="pixel-btn green" style="margin-top:20px;" onclick="connectSandboxHost()">JOIN ROOM ⚔️</button>
+        <button class="pixel-btn green" style="margin-top:20px;" onclick="connectSandboxHost()">CONNECT ROOM</button>
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-menu-screen')">BACK</button>
     </div>
 
     <div id="matchmaking-screen" class="screen">
-        <h2 class="screen-title" id="match-status-text">MATCHMAKING...</h2>
+        <h2 class="screen-title" id="match-status-text">INITIALIZING...</h2>
         <div class="pixel-card">
-            <div class="spinning-dice" id="match-loader">🎲</div>
-            <p style="font-size: 9px; margin-top: 15px; line-height: 1.6;">LOOKING FOR ANOTHER ONLINE PLAYER WORLDWIDE...</p>
+            <div class="spinning-dice" id="match-loader">⚔️</div>
+            <p id="match-sub-status" style="font-size: 9px; margin-top: 20px; line-height: 1.6; color: #00beff;">SCANNING THE STREAM FOR ONLINE USERS...</p>
         </div>
-        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL</button>
+        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL SPEED</button>
     </div>
 
     <div id="color-screen" class="screen">
-        <h2 class="screen-title">SELECT COLORS</h2>
+        <h2 class="screen-title">CHOOSE DESIGN</h2>
         <div class="pixel-card">
             <div class="picker-container">
                 <div class="color-picker-section">
@@ -77,13 +77,13 @@
                 </div>
             </div>
         </div>
-        <button class="pixel-btn green" style="margin-top:20px;" onclick="launchLocalGame()">START MATCH</button>
+        <button class="pixel-btn green" style="margin-top:25px;" onclick="launchLocalGame()">DEPLOY ENGAGE</button>
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('menu-screen')">BACK</button>
     </div>
 
     <div id="game-screen" class="screen">
         <div class="game-header">
-            <div id="turn-indicator" class="turn-box">YOUR TURN</div>
+            <div class="score-tag-retro">BOARD: 9X9</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
@@ -93,28 +93,31 @@
             <div id="goal-line-bottom" class="goal-line"></div>
         </div>
 
-        <div id="game-live-notice" class="game-footer-tips">WALL COLOR MATCHES THE PLAYER WHO PLACES IT!</div>
+        <div class="live-turn-console">
+            <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
+            <div id="game-live-notice" class="action-logs-footer">WALLS MEASURE EXACTLY 2-BLOCKS IN LENGTH!</div>
+        </div>
     </div>
 
     <div id="victory-screen" class="screen">
         <canvas id="firecracker-canvas"></canvas>
         <div class="victory-content pixel-card">
-            <h1 class="victory-title">CONGRATULATIONS!</h1>
-            <p id="winner-declaration-text" style="font-size: 11px; color: #8edc3a; margin-bottom: 25px;">PLAYER 1 WINS THE REIGN</p>
+            <h1 class="victory-title">VICTORY SPLASH!</h1>
+            <p id="winner-declaration-text" style="font-size: 10px; color: #8edc3a; margin-bottom: 25px; line-height: 1.6;">CHAMPION CAPTURES THE MATRIX</p>
             
             <div class="victory-actions">
                 <button class="pixel-btn green" onclick="shareVictoryTray()">SHARE VICTORY 🏆</button>
-                <button class="pixel-btn red compact" style="margin-top: 15px;" onclick="confirmExit()">BACK TO MENU</button>
+                <button class="pixel-btn red compact" style="margin-top: 18px;" onclick="confirmExit()">MAIN MENU</button>
             </div>
         </div>
     </div>
 
     <div id="help-modal" class="modal-overlay">
         <div class="modal-card pixel-card">
-            <h2>SUPPORT</h2>
+            <h2>SUPPORT SYS</h2>
             <div class="contact-links">
-                <a href="mailto:riyanshu@example.com" class="contact-item email">EMAIL SUPPORT</a>
-                <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">INSTAGRAM</a>
+                <a href="mailto:riyanshu@example.com" class="contact-item email">EMAIL ARCHIVE</a>
+                <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">INSTAGRAM DEVELOPER</a>
             </div>
             <button class="pixel-btn red compact" onclick="toggleModal('help-modal', false)">CLOSE</button>
         </div>
