@@ -1,10 +1,10 @@
 :root {
     --bg-main: #0b1424;
     --bg-grid-line: #1b2d4a;
-    --cell-color: #ffffff; /* Matches screenshot clean white canvas */
+    --cell-color: #ffffff;
     --text-color: #ffffff;
     
-    /* Pixel Button Color Palettes from your Image */
+    /* Buttons Pixel Engine Matte */
     --pixel-green-top: #8edc3a; --pixel-green-bot: #5da124; --pixel-green-border: #1d3506;
     --pixel-blue-top: #00beff;  --pixel-blue-bot: #0081cc;  --pixel-blue-border: #002d54;
     --pixel-orange-top: #ff9b13;--pixel-orange-bot: #cc6a00;--pixel-orange-border: #4a2300;
@@ -12,9 +12,8 @@
 }
 
 body {
-    font-family: 'Press Start 2P', monospace; /* Classic 8-Bit Font */
+    font-family: 'Press Start 2P', monospace;
     background-color: var(--bg-main);
-    /* Simulated Digital Retro Grid Background Layout */
     background-image: linear-gradient(var(--bg-grid-line) 2px, transparent 2px),
                       linear-gradient(90deg, var(--bg-grid-line) 2px, transparent 2px);
     background-size: 40px 40px;
@@ -23,150 +22,102 @@ body {
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     min-height: 100vh; overflow: hidden;
+    user-select: none;
 }
 
-/* Screen Configuration */
 .screen {
     display: none; flex-direction: column;
     align-items: center; justify-content: center;
     width: 100%; max-width: 500px;
     padding: 20px; box-sizing: border-box;
+    z-index: 10;
 }
 .screen.active { display: flex; }
 
 .game-title {
-    font-size: 2.2rem; text-align: center; margin: 0;
+    font-size: 2rem; text-align: center; margin: 0;
     color: #00beff; text-shadow: 4px 4px 0px #002d54;
 }
-.game-subtitle { font-size: 0.8rem; color: #8edc3a; margin-bottom: 40px; }
-.screen-title { font-size: 1.2rem; margin-bottom: 25px; text-align: center; color: #ff9b13;}
+.game-subtitle { font-size: 0.75rem; color: #8edc3a; margin-bottom: 35px; text-align: center; }
+.screen-title { font-size: 1.1rem; margin-bottom: 25px; text-align: center; color: #ff9b13;}
 
-/* EXACT PIXEL ART BUTTONS DESIGN FROM IMAGE */
+/* PIXEL BUTTONS DEFINITION */
 .pixel-btn {
     font-family: 'Press Start 2P', monospace;
-    font-size: 1rem; font-weight: bold;
-    padding: 12px 24px; text-align: center;
+    font-size: 0.85rem; font-weight: bold;
+    padding: 14px 18px; text-align: center;
     border: 4px solid black; border-radius: 4px;
     cursor: pointer; position: relative;
     box-sizing: border-box; display: inline-block;
     text-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+    width: 100%;
 }
+.pixel-btn.compact { font-size: 0.65rem; padding: 8px 14px; border-width: 3px; width: auto; }
 
-.pixel-btn.compact { font-size: 0.7rem; padding: 8px 16px; border-width: 3px; }
-
-/* Green Variant */
-.pixel-btn.green {
-    background: linear-gradient(to bottom, var(--pixel-green-top) 50%, var(--pixel-green-bot) 50%);
-    color: white; border-color: var(--pixel-green-border);
-    box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black;
-}
-/* Blue Variant */
-.pixel-btn.blue {
-    background: linear-gradient(to bottom, var(--pixel-blue-top) 50%, var(--pixel-blue-bot) 50%);
-    color: white; border-color: var(--pixel-blue-border);
-    box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black;
-}
-/* Orange Variant */
-.pixel-btn.orange {
-    background: linear-gradient(to bottom, var(--pixel-orange-top) 50%, var(--pixel-orange-bot) 50%);
-    color: white; border-color: var(--pixel-orange-border);
-    box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black;
-}
-/* Red Variant */
-.pixel-btn.red {
-    background: linear-gradient(to bottom, var(--pixel-red-top) 50%, var(--pixel-red-bot) 50%);
-    color: white; border-color: var(--pixel-red-border);
-    box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black;
-}
-
-.pixel-btn:active {
-    transform: translateY(4px);
-    box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black;
-}
+.pixel-btn.green { background: linear-gradient(to bottom, var(--pixel-green-top) 50%, var(--pixel-green-bot) 50%); color: white; border-color: var(--pixel-green-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
+.pixel-btn.blue { background: linear-gradient(to bottom, var(--pixel-blue-top) 50%, var(--pixel-blue-bot) 50%); color: white; border-color: var(--pixel-blue-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
+.pixel-btn.orange { background: linear-gradient(to bottom, var(--pixel-orange-top) 50%, var(--pixel-orange-bot) 50%); color: white; border-color: var(--pixel-orange-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
+.pixel-btn.red { background: linear-gradient(to bottom, var(--pixel-red-top) 50%, var(--pixel-red-bot) 50%); color: white; border-color: var(--pixel-red-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
+.pixel-btn:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 
 #help-btn { position: fixed; top: 20px; right: 20px; z-index: 100; }
-.menu-buttons { display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 280px; }
+.menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; }
 
-/* Retro Containers */
-.pixel-card {
-    background: #0f1c30; border: 4px solid #1b2d4a;
-    padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black;
-}
-.input-card input {
-    background: #060d1a; border: 4px solid black; padding: 10px;
-    color: #00beff; font-family: 'Press Start 2P', monospace;
-    font-size: 1rem; width: 200px; text-align: center; outline: none;
-}
+.pixel-card { background: #0f1c30; border: 4px solid #1b2d4a; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
+.input-card input { background: #060d1a; border: 4px solid black; padding: 12px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 90%; box-sizing: border-box; text-align: center; outline: none; letter-spacing: 2px;}
 
-/* Custom Colors Frame */
-.picker-container { display: flex; gap: 20px; text-align: center;}
-.color-picker-section h3 { font-size: 0.65rem; margin-bottom: 10px; color: #8edc3a;}
-.color-grid { display: grid; grid-template-columns: repeat(4, 30px); gap: 8px; }
-.color-node { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
-.color-node.selected { border-color: white; box-shadow: 0 0 8px white; }
+/* 9X9 ARCADE BOARD */
+.pixel-board-wrap { background: #0f1c30; padding: 8px; border: 4px solid #1b2d4a; box-shadow: 8px 8px 0px black; position: relative; }
+.game-header { display: flex; width: 100%; max-width: 410px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.turn-box { font-size: 0.65rem; border-bottom: 4px solid #00beff; padding-bottom: 4px; }
+.goal-line { height: 6px; background: #8edc3a; border-radius: 2px; margin: 2px 0; }
 
-/* Matchmaking */
-.matchmaking-container { display: flex; align-items: center; gap: 20px; }
-.player-slot { display: flex; flex-direction: column; align-items: center; font-size: 0.6rem; width: 80px;}
-.avatar-pixel { width: 45px; height: 45px; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 1rem; background: #060d1a; color: #ff9b13;}
-.slot-name { margin-top: 10px; line-height: 1.4; text-align: center;}
-.spinning-dice { width: 40px; height: 40px; background: #ff9b13; color: black; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; border: 3px solid black; animation: spin 0.6s infinite linear; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.error-notice { color: #ff5252; font-size: 0.6rem; margin: 15px 0; }
-.hide { display: none; }
-
-/* GAME BOARD STRUCTURAL MECHANICS (Clean Screenshot View) */
-.pixel-board-wrap {
-    background: #0f1c30; padding: 10px;
-    border: 4px solid #1b2d4a; box-shadow: 8px 8px 0px black;
-    position: relative; margin-top: 10px;
-}
-.game-header { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.turn-box { font-size: 0.75rem; border-bottom: 4px solid #00beff; padding-bottom: 4px; }
-
-.goal-line { height: 8px; background: #8edc3a; border-radius: 2px; margin: 4px 0; }
-
-#game-board {
-    display: grid; grid-template-columns: repeat(7, 46px); grid-template-rows: repeat(7, 46px);
-    background: #e2e8f0; /* Crisp thin grid borders */
-    gap: 2px; position: relative;
-}
+#game-board { display: grid; grid-template-columns: repeat(9, 38px); grid-template-rows: repeat(9, 38px); background: #1b2d4a; gap: 2px; position: relative; }
 .cell { background: var(--cell-color); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.game-piece { width: 28px; height: 28px; border-radius: 50%; z-index: 5; box-shadow: inset -3px -3px 5px rgba(0,0,0,0.4); }
 
-/* Perfect Spherical Glowing Tokens from your screenshot */
-.game-piece {
-    width: 34px; height: 34px; border-radius: 50%;
-    z-index: 5; box-shadow: inset -3px -3px 6px rgba(0,0,0,0.3);
+/* WALL JUNCTIONS */
+.wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; }
+.wall-trigger.horizontal-type { width: 38px; height: 8px; margin-top: -4px;}
+.wall-trigger.vertical-type { width: 8px; height: 38px; margin-left: -4px;}
+.wall-trigger:hover { background: rgba(0, 190, 255, 0.4); }
+.wall-trigger.placed-wall { border-radius: 6px; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+/* FLOATING IN-GAME ALERTS / NOTICES (Replaces Alert box) */
+.toast-popup {
+    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
+    background: #c62828; border: 3px solid black; padding: 12px 24px;
+    font-size: 0.65rem; color: white; border-radius: 4px; z-index: 2000;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.4); text-align: center;
+    transition: opacity 0.2s ease-in-out; pointer-events: none;
 }
+.toast-popup.green-alert { background: #5da124; }
+.toast-popup.hide { display: none; opacity: 0; }
 
-/* Rounded thick solid walls directly overlapping lines */
-.wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; transition: background 0.1s; }
-.wall-trigger.horizontal-type { width: 46px; height: 8px; margin-top: -3px;}
-.wall-trigger.vertical-type { width: 8px; height: 46px; margin-left: -3px;}
-.wall-trigger:hover { background: rgba(0, 190, 255, 0.4); border-radius: 4px;}
+.upi-box { background: black; padding: 12px; font-size: 1rem; color: #8edc3a; margin: 10px 0; }
+.game-footer-tips { font-size: 0.45rem; text-align: center; color: #8a99ad; margin-top: 15px; line-height: 1.4; min-height: 15px;}
+.spinning-dice { font-size: 2.5rem; animation: spin 0.8s infinite linear; display: inline-block; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-.wall-trigger.placed-wall {
-    border-radius: 10px; /* Gives the perfect capsule look as requested */
-    z-index: 15;
-}
+/* CELEBRATION SCREEN INTERFACE */
+#victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(5, 10, 20, 0.95); z-index: 500; display: none;}
+#victory-screen.active { display: flex; }
+#firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 501; }
+.victory-content { z-index: 502; max-width: 400px; transform: scale(1.1); border-color: #ff9b13; }
+.victory-title { font-size: 1.3rem; color: #ff9b13; text-shadow: 3px 3px 0px black; margin: 0 0 15px 0; }
+.victory-actions { display: flex; flex-direction: column; align-items: center; width: 100%; }
 
-.game-footer-tips { font-size: 0.5rem; text-align: center; color: #8a99ad; margin-top: 20px; line-height: 1.5; }
+.picker-container { display: flex; gap: 20px; justify-content: center; }
+.color-picker-section h3 { font-size: 0.55rem; margin-bottom: 8px; color: #8edc3a;}
+.color-grid { display: grid; grid-template-columns: repeat(4, 28px); gap: 6px; }
+.color-node { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+.color-node.selected { border-color: white; box-shadow: 0 0 6px white; }
 
-/* Modals */
 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; }
-.modal-card h2 { font-size: 1rem; color: #ff9b13; margin-bottom: 15px; }
-.modal-card p { font-size: 0.65rem; }
 .contact-links { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
 .contact-item { padding: 10px; font-size: 0.65rem; text-decoration: none; color: white; border: 2px solid white; }
-.contact-item.email { background: #0081cc; }
-.contact-item.instagram { background: #cc6a00; }
-.upi-box { background: black; padding: 8px; font-size: 0.6rem; color: #8edc3a; margin: 10px 0; }
-.mock-qr { width: 80px; height: 80px; background: white; margin: 10px auto; border: 2px solid white; position: relative; }
-.qr-square { width: 20px; height: 20px; background: black; position: absolute; }
-.qr-square.black { top:0; left:0; } .qr-square.alignment { bottom:0; right:0; }
-.qr-text { color: black; font-size: 0.4rem; font-weight: bold; position: absolute; bottom: 25px; width: 100%; text-align: center; }
+.contact-item.email { background: #0081cc; } .contact-item.instagram { background: #cc6a00; }
 
-/* Footer layout */
 footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(11,20,36,0.9); z-index: 50;}
 .footer-text { font-size: 0.55rem; color: #8a99ad; }
-.cookie-circle { width: 28px; height: 28px; background: #cc6a00; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; box-shadow: 0 0 6px #ff9b13; }
+.cookie-circle { width: 28px; height: 28px; background: #cc6a00; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; }
