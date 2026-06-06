@@ -1,0 +1,336 @@
+:root {
+    --bg-main: #0a192f;
+    --bg-card: #172a45;
+    --text-primary: #f8fafc;
+    --text-secondary: #8892b0;
+    --accent-blue: #64ffda;
+    --board-grid-bg: #112240;
+    --cell-empty: #1d3557;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Screen Management */
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    box-sizing: border-box;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.screen.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Typography & Layouts */
+.game-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin: 0 0 5px 0;
+    background: linear-gradient(45deg, #00f2fe, #4facfe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 5px 15px rgba(79, 172, 254, 0.2);
+}
+
+.game-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+}
+
+.screen-title {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    color: #4facfe;
+}
+
+/* Button Designs */
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.menu-btn, .action-btn {
+    padding: 15px 25px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--bg-main);
+    background: linear-gradient(90deg, #64ffda, #00f2fe);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(100, 255, 218, 0.2);
+    transition: all 0.2s ease;
+}
+
+.menu-btn:hover, .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
+}
+
+.back-btn {
+    margin-top: 20px;
+    background: transparent;
+    border: 2px solid var(--text-secondary);
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.back-btn.compact { margin-top: 0; padding: 6px 12px; font-size: 0.9rem;}
+
+.back-btn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+#help-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    z-index: 100;
+}
+
+/* Custom Colors Grid */
+.picker-container {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 35px;
+    background: var(--bg-card);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 40px);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.color-node {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.1s;
+}
+
+.color-node:hover { transform: scale(1.1); }
+.color-node.selected { border-color: #64ffda; transform: scale(1.05); }
+
+/* Identity & Matchmaking */
+.input-group input {
+    background: var(--bg-card);
+    border: 2px solid var(--board-grid-bg);
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    width: 260px;
+    text-align: center;
+}
+
+.matchmaking-container {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    background: var(--bg-card);
+    padding: 30px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+.player-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100px;
+}
+
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--cell-empty);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: 2px solid var(--accent-blue);
+}
+
+.slot-name { margin-top: 10px; font-size: 0.95rem; text-align: center;}
+
+/* Spinning Dice Animation */
+.spinning-dice {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: var(--bg-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 900;
+    border-radius: 10px;
+    animation: spin 0.8s infinite linear;
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-notice {
+    color: #ff7675;
+    background: rgba(255, 118, 117, 0.1);
+    padding: 8px 16px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+.hide { display: none; }
+
+/* Tactical Game Board Theme */
+#board-container {
+    background: var(--bg-card);
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(7, 50px);
+    grid-template-rows: repeat(7, 50px);
+    gap: 12px;
+    background: var(--board-grid-bg);
+    padding: 10px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.cell {
+    background: var(--cell-empty);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.game-piece {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    z-index: 5;
+}
+
+/* Wall Barriers Trigger */
+.wall-trigger {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    border-radius: 4px;
+    z-index: 10;
+}
+.wall-trigger:hover { background: rgba(100, 255, 218, 0.3); }
+.wall-trigger.placed-wall { background: #cbd5e1 !important; box-shadow: 0 0 8px #fff; }
+
+/* Modals & Popups */
+.modal-overlay {
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    background: rgba(10, 25, 47, 0.85);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.contact-links { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+.contact-item { padding: 12px; border-radius: 8px; text-decoration: none; color: white; font-weight: bold;}
+.contact-item.email { background: #34495e; }
+.contact-item.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+
+.upi-box { background: var(--bg-main); padding: 10px; border-radius: 6px; margin: 15px 0; font-family: monospace;}
+.mock-qr {
+    width: 120px; height: 120px; background: white; margin: 15px auto;
+    border: 4px solid white; position: relative; display: flex; align-items: center; justify-content: center;
+}
+.qr-square { width: 30px; height: 30px; background: black; position: absolute; }
+.qr-square.black { top: 5px; left: 5px; }
+.qr-square.alignment { bottom: 5px; right: 5px; }
+.qr-text { color: #333; font-size: 0.6rem; font-weight: bold; margin-top: 40px;}
+.close-modal-btn { background: #e2e8f0; color: #0f172a; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+
+/* App Footer Elements */
+footer {
+    position: fixed;
+    bottom: 0; left: 0; width: 100%;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background: rgba(10, 25, 47, 0.9);
+}
+
+.footer-text { font-size: 0.9rem; color: var(--text-secondary); }
+.cookie-circle {
+    width: 35px; height: 35px; background: #ff9f43; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; cursor: pointer; box-shadow: 0 0 10px rgba(255, 159, 67, 0.4);
+    transition: transform 0.2s;
+}
+.cookie-circle:hover { transform: scale(1.2) rotate(15deg); }
