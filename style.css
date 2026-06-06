@@ -1,10 +1,10 @@
 :root {
-    --bg-main: #0b1424;
-    --bg-grid-line: #1b2d4a;
-    --cell-color: #ffffff;
+    --bg-main: #060b13;
+    --bg-grid-line: #121f35;
+    --cell-color: #ffffff; /* Clean flat white grid look from screenshot */
     --text-color: #ffffff;
     
-    /* Buttons Pixel Engine Matte */
+    /* 8-Bit Matte Color Schemes */
     --pixel-green-top: #8edc3a; --pixel-green-bot: #5da124; --pixel-green-border: #1d3506;
     --pixel-blue-top: #00beff;  --pixel-blue-bot: #0081cc;  --pixel-blue-border: #002d54;
     --pixel-orange-top: #ff9b13;--pixel-orange-bot: #cc6a00;--pixel-orange-border: #4a2300;
@@ -16,36 +16,31 @@ body {
     background-color: var(--bg-main);
     background-image: linear-gradient(var(--bg-grid-line) 2px, transparent 2px),
                       linear-gradient(90deg, var(--bg-grid-line) 2px, transparent 2px);
-    background-size: 40px 40px;
+    background-size: 30px 30px;
     color: var(--text-color);
     margin: 0; padding: 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     min-height: 100vh; overflow: hidden;
-    user-select: none;
 }
 
 .screen {
     display: none; flex-direction: column;
     align-items: center; justify-content: center;
-    width: 100%; max-width: 500px;
-    padding: 20px; box-sizing: border-box;
-    z-index: 10;
+    width: 100%; max-width: 600px;
+    padding: 15px; box-sizing: border-box;
 }
 .screen.active { display: flex; }
 
-.game-title {
-    font-size: 2rem; text-align: center; margin: 0;
-    color: #00beff; text-shadow: 4px 4px 0px #002d54;
-}
+.game-title { font-size: 2.2rem; text-align: center; margin: 0; color: #00beff; text-shadow: 4px 4px 0px #002d54; }
 .game-subtitle { font-size: 0.75rem; color: #8edc3a; margin-bottom: 35px; text-align: center; }
 .screen-title { font-size: 1.1rem; margin-bottom: 25px; text-align: center; color: #ff9b13;}
 
-/* PIXEL BUTTONS DEFINITION */
+/* HARDWARE ARCADE STYLED BUTTONS */
 .pixel-btn {
     font-family: 'Press Start 2P', monospace;
     font-size: 0.85rem; font-weight: bold;
-    padding: 14px 18px; text-align: center;
+    padding: 15px 18px; text-align: center;
     border: 4px solid black; border-radius: 4px;
     cursor: pointer; position: relative;
     box-sizing: border-box; display: inline-block;
@@ -61,50 +56,86 @@ body {
 .pixel-btn:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 
 #help-btn { position: fixed; top: 20px; right: 20px; z-index: 100; }
-.menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; }
+.menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
-.pixel-card { background: #0f1c30; border: 4px solid #1b2d4a; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
-.input-card input { background: #060d1a; border: 4px solid black; padding: 12px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 90%; box-sizing: border-box; text-align: center; outline: none; letter-spacing: 2px;}
+.pixel-card { background: #0c1626; border: 4px solid #1c3254; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
+.input-card input { background: #040810; border: 4px solid black; padding: 14px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 100%; box-sizing: border-box; text-align: center; outline: none; }
 
-/* 9X9 ARCADE BOARD */
-.pixel-board-wrap { background: #0f1c30; padding: 8px; border: 4px solid #1b2d4a; box-shadow: 8px 8px 0px black; position: relative; }
-.game-header { display: flex; width: 100%; max-width: 410px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.turn-box { font-size: 0.65rem; border-bottom: 4px solid #00beff; padding-bottom: 4px; }
-.goal-line { height: 6px; background: #8edc3a; border-radius: 2px; margin: 2px 0; }
+/* 🚀 ENHANCED PREMIUM 9x9 BOARD VIEW (LARGE SIZE CHANNELS) */
+.pixel-board-wrap {
+    background: #0d1726; padding: 12px;
+    border: 5px solid #1c3254; box-shadow: 10px 10px 0px black;
+    position: relative; margin: 10px 0;
+}
+.game-header { display: flex; width: 100%; max-width: 530px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.score-tag-retro { font-size: 0.7rem; background: #12213a; padding: 6px 12px; border: 2px dashed #00beff; }
+.goal-line { height: 8px; background: #8edc3a; border-radius: 2px; margin: 4px 0; }
 
-#game-board { display: grid; grid-template-columns: repeat(9, 38px); grid-template-rows: repeat(9, 38px); background: #1b2d4a; gap: 2px; position: relative; }
+/* Expanded each block to 55px width/height as requested */
+#game-board { 
+    display: grid; 
+    grid-template-columns: repeat(9, 55px); 
+    grid-template-rows: repeat(9, 55px); 
+    background: #15253e; 
+    gap: 3px; 
+    position: relative; 
+}
 .cell { background: var(--cell-color); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.game-piece { width: 28px; height: 28px; border-radius: 50%; z-index: 5; box-shadow: inset -3px -3px 5px rgba(0,0,0,0.4); }
 
-/* WALL JUNCTIONS */
+/* Perfectly Circular Polished Tokens */
+.game-piece { width: 42px; height: 42px; border-radius: 50%; z-index: 5; box-shadow: inset -4px -4px 6px rgba(0,0,0,0.4), 0 0 10px rgba(255,255,255,0.3); }
+
+/* 🧱 CAPSULE STYLE DUAL-BLOCK WALL OVERLAYS */
 .wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; }
-.wall-trigger.horizontal-type { width: 38px; height: 8px; margin-top: -4px;}
-.wall-trigger.vertical-type { width: 8px; height: 38px; margin-left: -4px;}
-.wall-trigger:hover { background: rgba(0, 190, 255, 0.4); }
-.wall-trigger.placed-wall { border-radius: 6px; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+/* Horizontal wall covers exactly 2 full grid blocks space length */
+.wall-trigger.horizontal-type { width: 113px; height: 10px; margin-top: -5px; }
+/* Vertical wall covers exactly 2 full grid blocks space length */
+.wall-trigger.vertical-type { width: 10px; height: 113px; margin-left: -5px; }
+.wall-trigger:hover { background: rgba(0, 190, 255, 0.4); border-radius: 4px; }
 
-/* FLOATING IN-GAME ALERTS / NOTICES (Replaces Alert box) */
+/* Thick capsule-style rounded blocks */
+.wall-trigger.placed-wall {
+    border-radius: 12px;
+    z-index: 15;
+    box-sizing: border-box;
+    border: 2px solid rgba(0,0,0,0.4);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.6);
+}
+
+/* 📣 DYNAMIC LIVE TURN CONSOLE AT BOTTOM CONTAINER */
+.live-turn-console {
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%; max-width: 530px; margin-top: 15px; gap: 10px;
+}
+.turn-highlight-banner {
+    width: 100%; text-align: center; padding: 12px;
+    font-size: 1rem; font-weight: bold; background: #12213a;
+    border: 3px solid #00beff; color: #ffffff;
+    box-shadow: 4px 4px 0px black; letter-spacing: 2px;
+}
+.action-logs-footer { font-size: 0.5rem; text-align: center; color: #7f8fa4; line-height: 1.4; min-height: 15px; }
+
+/* INTERNAL FLOATING TOAST GRAPHICS */
 .toast-popup {
-    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
-    background: #c62828; border: 3px solid black; padding: 12px 24px;
-    font-size: 0.65rem; color: white; border-radius: 4px; z-index: 2000;
-    box-shadow: 4px 4px 0px rgba(0,0,0,0.4); text-align: center;
-    transition: opacity 0.2s ease-in-out; pointer-events: none;
+    position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+    background: #c62828; border: 4px solid black; padding: 12px 28px;
+    font-size: 0.7rem; color: white; border-radius: 4px; z-index: 2500;
+    box-shadow: 5px 5px 0px rgba(0,0,0,0.5); text-align: center;
+    transition: opacity 0.15s ease; pointer-events: none;
 }
 .toast-popup.green-alert { background: #5da124; }
 .toast-popup.hide { display: none; opacity: 0; }
 
-.upi-box { background: black; padding: 12px; font-size: 1rem; color: #8edc3a; margin: 10px 0; }
-.game-footer-tips { font-size: 0.45rem; text-align: center; color: #8a99ad; margin-top: 15px; line-height: 1.4; min-height: 15px;}
-.spinning-dice { font-size: 2.5rem; animation: spin 0.8s infinite linear; display: inline-block; }
+.upi-box { background: black; padding: 12px; font-size: 1.1rem; color: #8edc3a; margin: 12px 0; }
+.spinning-dice { font-size: 3rem; animation: spin 0.8s infinite linear; display: inline-block; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* CELEBRATION SCREEN INTERFACE */
-#victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(5, 10, 20, 0.95); z-index: 500; display: none;}
+/* CELEBRATION PORTAL LAYER */
+#victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(3, 6, 12, 0.96); z-index: 800; display: none;}
 #victory-screen.active { display: flex; }
-#firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 501; }
-.victory-content { z-index: 502; max-width: 400px; transform: scale(1.1); border-color: #ff9b13; }
-.victory-title { font-size: 1.3rem; color: #ff9b13; text-shadow: 3px 3px 0px black; margin: 0 0 15px 0; }
+#firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 801; }
+.victory-content { z-index: 802; max-width: 440px; border: 5px solid #ff9b13; transform: scale(1.05); }
+.victory-title { font-size: 1.4rem; color: #ff9b13; text-shadow: 4px 4px 0px black; margin: 0 0 15px 0; }
 .victory-actions { display: flex; flex-direction: column; align-items: center; width: 100%; }
 
 .picker-container { display: flex; gap: 20px; justify-content: center; }
@@ -115,9 +146,5 @@ body {
 
 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; }
 .contact-links { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
-.contact-item { padding: 10px; font-size: 0.65rem; text-decoration: none; color: white; border: 2px solid white; }
+.contact-item { padding: 10px; font-size: 0.65rem; text-decoration: none; color: white; border: 2px solid white; text-align: center; }
 .contact-item.email { background: #0081cc; } .contact-item.instagram { background: #cc6a00; }
-
-footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(11,20,36,0.9); z-index: 50;}
-.footer-text { font-size: 0.55rem; color: #8a99ad; }
-.cookie-circle { width: 28px; height: 28px; background: #cc6a00; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; }
