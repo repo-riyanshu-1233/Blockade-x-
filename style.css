@@ -1,10 +1,9 @@
 :root {
     --bg-main: #060b13;
     --bg-grid-line: #121f35;
-    --cell-color: #ffffff; /* Clean flat white grid look from screenshot */
+    --cell-color: #ffffff;
     --text-color: #ffffff;
     
-    /* 8-Bit Matte Color Schemes */
     --pixel-green-top: #8edc3a; --pixel-green-bot: #5da124; --pixel-green-border: #1d3506;
     --pixel-blue-top: #00beff;  --pixel-blue-bot: #0081cc;  --pixel-blue-border: #002d54;
     --pixel-orange-top: #ff9b13;--pixel-orange-bot: #cc6a00;--pixel-orange-border: #4a2300;
@@ -36,7 +35,6 @@ body {
 .game-subtitle { font-size: 0.75rem; color: #8edc3a; margin-bottom: 35px; text-align: center; }
 .screen-title { font-size: 1.1rem; margin-bottom: 25px; text-align: center; color: #ff9b13;}
 
-/* HARDWARE ARCADE STYLED BUTTONS */
 .pixel-btn {
     font-family: 'Press Start 2P', monospace;
     font-size: 0.85rem; font-weight: bold;
@@ -61,7 +59,7 @@ body {
 .pixel-card { background: #0c1626; border: 4px solid #1c3254; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
 .input-card input { background: #040810; border: 4px solid black; padding: 14px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 100%; box-sizing: border-box; text-align: center; outline: none; }
 
-/* 🚀 ENHANCED PREMIUM 9x9 BOARD VIEW (LARGE SIZE CHANNELS) */
+/* 🚀 CRISP PREMIUM 9x9 BOARD VIEW */
 .pixel-board-wrap {
     background: #0d1726; padding: 12px;
     border: 5px solid #1c3254; box-shadow: 10px 10px 0px black;
@@ -71,7 +69,6 @@ body {
 .score-tag-retro { font-size: 0.7rem; background: #12213a; padding: 6px 12px; border: 2px dashed #00beff; }
 .goal-line { height: 8px; background: #8edc3a; border-radius: 2px; margin: 4px 0; }
 
-/* Expanded each block to 55px width/height as requested */
 #game-board { 
     display: grid; 
     grid-template-columns: repeat(9, 55px); 
@@ -81,19 +78,14 @@ body {
     position: relative; 
 }
 .cell { background: var(--cell-color); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-
-/* Perfectly Circular Polished Tokens */
 .game-piece { width: 42px; height: 42px; border-radius: 50%; z-index: 5; box-shadow: inset -4px -4px 6px rgba(0,0,0,0.4), 0 0 10px rgba(255,255,255,0.3); }
 
 /* 🧱 CAPSULE STYLE DUAL-BLOCK WALL OVERLAYS */
 .wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; }
-/* Horizontal wall covers exactly 2 full grid blocks space length */
 .wall-trigger.horizontal-type { width: 113px; height: 10px; margin-top: -5px; }
-/* Vertical wall covers exactly 2 full grid blocks space length */
 .wall-trigger.vertical-type { width: 10px; height: 113px; margin-left: -5px; }
 .wall-trigger:hover { background: rgba(0, 190, 255, 0.4); border-radius: 4px; }
 
-/* Thick capsule-style rounded blocks */
 .wall-trigger.placed-wall {
     border-radius: 12px;
     z-index: 15;
@@ -102,7 +94,7 @@ body {
     box-shadow: 0 4px 6px rgba(0,0,0,0.6);
 }
 
-/* 📣 DYNAMIC LIVE TURN CONSOLE AT BOTTOM CONTAINER */
+/* 📣 DYNAMIC LIVE TURN CONSOLE AT BOTTOM */
 .live-turn-console {
     display: flex; flex-direction: column; align-items: center;
     width: 100%; max-width: 530px; margin-top: 15px; gap: 10px;
@@ -115,7 +107,6 @@ body {
 }
 .action-logs-footer { font-size: 0.5rem; text-align: center; color: #7f8fa4; line-height: 1.4; min-height: 15px; }
 
-/* INTERNAL FLOATING TOAST GRAPHICS */
 .toast-popup {
     position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
     background: #c62828; border: 4px solid black; padding: 12px 28px;
@@ -130,7 +121,6 @@ body {
 .spinning-dice { font-size: 3rem; animation: spin 0.8s infinite linear; display: inline-block; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* CELEBRATION PORTAL LAYER */
 #victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(3, 6, 12, 0.96); z-index: 800; display: none;}
 #victory-screen.active { display: flex; }
 #firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 801; }
