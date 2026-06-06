@@ -3,28 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blockade X - Retro Arcade Edition</title>
+    <title>Blockade X - Ultimate Network Arcade</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <div id="game-toast" class="toast-popup hide">⚠️ SYSTEM READY</div>
 
     <button id="help-btn" class="pixel-btn orange compact" onclick="toggleModal('help-modal', true)">HELP ?</button>
 
     <div id="menu-screen" class="screen active">
         <h1 class="game-title">BLOCKADE X</h1>
-        <p class="game-subtitle">RETRO STRATEGY ENGINE</p>
+        <p class="game-subtitle">9X9 MULTIPLAYER NETWORK</p>
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="openColorSelection('pass')">PASS & PLAY</button>
             <button class="pixel-btn blue" onclick="openColorSelection('ai')">VS AI BOT</button>
-            <button class="pixel-btn orange" onclick="startOnlineSetup()">ONLINE PVP</button>
+            <button class="pixel-btn orange" onclick="startRandomMatchmaking()">ONLINE PVP (RANDOM)</button>
+            <button class="pixel-btn red" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
+    </div>
+
+    <div id="sandbox-menu-screen" class="screen">
+        <h2 class="screen-title">SANDBOX ROOMS</h2>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="initiateSandboxHost()">CREATE 5-CH CODE</button>
+            <button class="pixel-btn blue" onclick="showScreen('sandbox-join-screen')">ENTER 5-CH CODE</button>
+            <button class="pixel-btn red compact" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+    </div>
+
+    <div id="sandbox-host-screen" class="screen">
+        <h2 class="screen-title">ROOM CREATED</h2>
+        <div class="pixel-card">
+            <p style="font-size: 10px; margin-bottom: 15px;">5-LETTER SANDBOX CODE:</p>
+            <div id="sandbox-code-display" class="upi-box" style="font-size: 20px; color: #ff9b13; letter-spacing: 4px;">-----</div>
+        </div>
+        <p style="font-size: 9px; color: #8edc3a; margin-top: 15px;">Waiting for your friend to enter code...</p>
+        <button class="pixel-btn red compact" style="margin-top:20px;" onclick="disconnectPeer()">CANCEL</button>
+    </div>
+
+    <div id="sandbox-join-screen" class="screen">
+        <h2 class="screen-title">JOIN SANDBOX</h2>
+        <div class="pixel-card input-card">
+            <input type="text" id="sandbox-input-code" placeholder="CODE (EG: X7R29)" maxlength="5" style="text-transform: uppercase;">
+        </div>
+        <button class="pixel-btn green" style="margin-top:20px;" onclick="connectSandboxHost()">JOIN ROOM ⚔️</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-menu-screen')">BACK</button>
+    </div>
+
+    <div id="matchmaking-screen" class="screen">
+        <h2 class="screen-title" id="match-status-text">MATCHMAKING...</h2>
+        <div class="pixel-card">
+            <div class="spinning-dice" id="match-loader">🎲</div>
+            <p style="font-size: 9px; margin-top: 15px; line-height: 1.6;">LOOKING FOR ANOTHER ONLINE PLAYER WORLDWIDE...</p>
+        </div>
+        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
     <div id="color-screen" class="screen">
         <h2 class="screen-title">SELECT COLORS</h2>
-        
         <div class="pixel-card">
             <div class="picker-container">
                 <div class="color-picker-section">
@@ -37,45 +77,13 @@
                 </div>
             </div>
         </div>
-
-        <button class="pixel-btn green" style="margin-top:20px;" onclick="launchLocalGame()">START ⚔️</button>
+        <button class="pixel-btn green" style="margin-top:20px;" onclick="launchLocalGame()">START MATCH</button>
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('menu-screen')">BACK</button>
-    </div>
-
-    <div id="online-name-screen" class="screen">
-        <h2 class="screen-title">IDENTITY</h2>
-        <div class="pixel-card input-card">
-            <input type="text" id="player-username" placeholder="NAME..." maxlength="12">
-        </div>
-        <button class="pixel-btn green" style="margin-top:20px;" onclick="connectOnlinePvP()">FIND MATCH</button>
-        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('menu-screen')">BACK</button>
-    </div>
-
-    <div id="matchmaking-screen" class="screen">
-        <h2 class="screen-title" id="matchmaking-status">SEARCHING...</h2>
-        
-        <div class="matchmaking-container pixel-card">
-            <div class="player-slot">
-                <div class="avatar-pixel" id="user-avatar">-</div>
-                <div class="slot-name" id="user-display-name">YOU</div>
-            </div>
-
-            <div class="dice-wrapper">
-                <div id="matchmaking-dice" class="spinning-dice">?</div>
-            </div>
-
-            <div class="player-slot">
-                <div class="avatar-pixel" id="opponent-avatar">?</div>
-                <div class="slot-name" id="opponent-display-name">WAITING</div>
-            </div>
-        </div>
-        <div id="server-notice" class="error-notice hide">⚠️ SERVER UNREACHABLE</div>
-        <button class="pixel-btn red compact" onclick="cancelMatchmaking()">CANCEL</button>
     </div>
 
     <div id="game-screen" class="screen">
         <div class="game-header">
-            <div id="turn-indicator" class="turn-box">P1 TURN</div>
+            <div id="turn-indicator" class="turn-box">YOUR TURN</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
@@ -85,15 +93,25 @@
             <div id="goal-line-bottom" class="goal-line"></div>
         </div>
 
-        <div class="game-footer-tips">
-            DO NOT ENTIRELY TRAP YOUR OPPONENT!
+        <div id="game-live-notice" class="game-footer-tips">WALL COLOR MATCHES THE PLAYER WHO PLACES IT!</div>
+    </div>
+
+    <div id="victory-screen" class="screen">
+        <canvas id="firecracker-canvas"></canvas>
+        <div class="victory-content pixel-card">
+            <h1 class="victory-title">CONGRATULATIONS!</h1>
+            <p id="winner-declaration-text" style="font-size: 11px; color: #8edc3a; margin-bottom: 25px;">PLAYER 1 WINS THE REIGN</p>
+            
+            <div class="victory-actions">
+                <button class="pixel-btn green" onclick="shareVictoryTray()">SHARE VICTORY 🏆</button>
+                <button class="pixel-btn red compact" style="margin-top: 15px;" onclick="confirmExit()">BACK TO MENU</button>
+            </div>
         </div>
     </div>
 
     <div id="help-modal" class="modal-overlay">
         <div class="modal-card pixel-card">
             <h2>SUPPORT</h2>
-            <p style="font-size:11px; line-height:1.6;">Reach out to the developer directly:</p>
             <div class="contact-links">
                 <a href="mailto:riyanshu@example.com" class="contact-item email">EMAIL SUPPORT</a>
                 <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">INSTAGRAM</a>
@@ -101,29 +119,6 @@
             <button class="pixel-btn red compact" onclick="toggleModal('help-modal', false)">CLOSE</button>
         </div>
     </div>
-
-    <div id="donation-modal" class="modal-overlay">
-        <div class="modal-card pixel-card">
-            <h2 style="font-size:14px;">COOKIE DONATION</h2>
-            <p style="font-size:10px;">Keep the retro engine running!</p>
-            <div class="upi-box">riyanshu@upi</div>
-            <div class="qr-placeholder">
-                <div class="mock-qr">
-                    <div class="qr-square black"></div>
-                    <div class="qr-square black alignment"></div>
-                    <div class="qr-text">QR SCAN</div>
-                </div>
-            </div>
-            <button class="pixel-btn green compact" onclick="toggleModal('donation-modal', false)">DONE</button>
-        </div>
-    </div>
-
-    <footer>
-        <div class="footer-text">MADE BY RIYANSHU WITH LOVE ❤️</div>
-        <div class="cookie-container" onclick="toggleModal('donation-modal', true)">
-            <div class="cookie-circle">🍪</div>
-        </div>
-    </footer>
 
     <script src="script.js"></script>
 </body>
