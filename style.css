@@ -150,4 +150,23 @@ body {
     z-index: 15;
 }
 
-.game-footer-tips { font-size: 0
+.game-footer-tips { font-size: 0.5rem; text-align: center; color: #8a99ad; margin-top: 20px; line-height: 1.5; }
+
+/* Modals */
+.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.modal-card h2 { font-size: 1rem; color: #ff9b13; margin-bottom: 15px; }
+.modal-card p { font-size: 0.65rem; }
+.contact-links { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
+.contact-item { padding: 10px; font-size: 0.65rem; text-decoration: none; color: white; border: 2px solid white; }
+.contact-item.email { background: #0081cc; }
+.contact-item.instagram { background: #cc6a00; }
+.upi-box { background: black; padding: 8px; font-size: 0.6rem; color: #8edc3a; margin: 10px 0; }
+.mock-qr { width: 80px; height: 80px; background: white; margin: 10px auto; border: 2px solid white; position: relative; }
+.qr-square { width: 20px; height: 20px; background: black; position: absolute; }
+.qr-square.black { top:0; left:0; } .qr-square.alignment { bottom:0; right:0; }
+.qr-text { color: black; font-size: 0.4rem; font-weight: bold; position: absolute; bottom: 25px; width: 100%; text-align: center; }
+
+/* Footer layout */
+footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(11,20,36,0.9); z-index: 50;}
+.footer-text { font-size: 0.55rem; color: #8a99ad; }
+.cookie-circle { width: 28px; height: 28px; background: #cc6a00; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; box-shadow: 0 0 6px #ff9b13; }
