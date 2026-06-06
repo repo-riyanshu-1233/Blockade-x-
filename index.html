@@ -3,122 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barricade: Wall Blockade</title>
+    <title>Blockade X - Retro Arcade Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <button id="help-btn" class="icon-btn" onclick="toggleModal('help-modal', true)">❓ Help</button>
+    <button id="help-btn" class="pixel-btn orange compact" onclick="toggleModal('help-modal', true)">HELP ?</button>
 
     <div id="menu-screen" class="screen active">
-        <h1 class="game-title">BARRICADE</h1>
-        <p class="game-subtitle">The Ultimate Wall Blockade Strategy</p>
+        <h1 class="game-title">BLOCKADE X</h1>
+        <p class="game-subtitle">RETRO STRATEGY ENGINE</p>
         
         <div class="menu-buttons">
-            <button class="menu-btn" onclick="openColorSelection('pass')">👥 Pass & Play</button>
-            <button class="menu-btn" onclick="openColorSelection('ai')">🤖 With AI Bot</button>
-            <button class="menu-btn" onclick="startOnlineSetup()">🌐 Online PvP</button>
+            <button class="pixel-btn green" onclick="openColorSelection('pass')">PASS & PLAY</button>
+            <button class="pixel-btn blue" onclick="openColorSelection('ai')">VS AI BOT</button>
+            <button class="pixel-btn orange" onclick="startOnlineSetup()">ONLINE PVP</button>
         </div>
     </div>
 
     <div id="color-screen" class="screen">
-        <h2 class="screen-title">Choose Your Colors</h2>
+        <h2 class="screen-title">SELECT COLORS</h2>
         
-        <div class="picker-container">
-            <div id="p1-color-box" class="color-picker-section">
-                <h3>Player 1 Color</h3>
-                <div class="color-grid" id="p1-colors"></div>
-            </div>
-            
-            <div id="p2-color-box" class="color-picker-section">
-                <h3 id="p2-title">Player 2 Color</h3>
-                <div class="color-grid" id="p2-colors"></div>
+        <div class="pixel-card">
+            <div class="picker-container">
+                <div class="color-picker-section">
+                    <h3>PLAYER 1</h3>
+                    <div class="color-grid" id="p1-colors"></div>
+                </div>
+                <div class="color-picker-section">
+                    <h3 id="p2-title">PLAYER 2</h3>
+                    <div class="color-grid" id="p2-colors"></div>
+                </div>
             </div>
         </div>
 
-        <button class="action-btn" onclick="launchLocalGame()">Start Match ⚔️</button>
-        <button class="back-btn" onclick="showScreen('menu-screen')">Back to Menu</button>
+        <button class="pixel-btn green" style="margin-top:20px;" onclick="launchLocalGame()">START ⚔️</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('menu-screen')">BACK</button>
     </div>
 
     <div id="online-name-screen" class="screen">
-        <h2 class="screen-title">Enter Your Identity</h2>
-        <div class="input-group">
-            <input type="text" id="player-username" placeholder="Enter Your Name Here..." maxlength="15">
+        <h2 class="screen-title">IDENTITY</h2>
+        <div class="pixel-card input-card">
+            <input type="text" id="player-username" placeholder="NAME..." maxlength="12">
         </div>
-        <button class="action-btn" onclick="connectOnlinePvP()">Find Match 🔍</button>
-        <button class="back-btn" onclick="showScreen('menu-screen')">Back to Menu</button>
+        <button class="pixel-btn green" style="margin-top:20px;" onclick="connectOnlinePvP()">FIND MATCH</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('menu-screen')">BACK</button>
     </div>
 
     <div id="matchmaking-screen" class="screen">
-        <h2 class="screen-title" id="matchmaking-status">Searching for Opponents...</h2>
+        <h2 class="screen-title" id="matchmaking-status">SEARCHING...</h2>
         
-        <div class="matchmaking-container">
-            <div class="player-slot current-user">
-                <div class="avatar-circle" id="user-avatar">-</div>
-                <div class="slot-name" id="user-display-name">You</div>
+        <div class="matchmaking-container pixel-card">
+            <div class="player-slot">
+                <div class="avatar-pixel" id="user-avatar">-</div>
+                <div class="slot-name" id="user-display-name">YOU</div>
             </div>
 
             <div class="dice-wrapper">
                 <div id="matchmaking-dice" class="spinning-dice">?</div>
             </div>
 
-            <div class="player-slot opponent-user">
-                <div class="avatar-circle" id="opponent-avatar">?</div>
-                <div class="slot-name" id="opponent-display-name">Searching...</div>
+            <div class="player-slot">
+                <div class="avatar-pixel" id="opponent-avatar">?</div>
+                <div class="slot-name" id="opponent-display-name">WAITING</div>
             </div>
         </div>
-        <div id="server-notice" class="error-notice hide">⚠️ Sorry, server unreachable. Retrying...</div>
-        <button class="back-btn" onclick="cancelMatchmaking()">Cancel</button>
+        <div id="server-notice" class="error-notice hide">⚠️ SERVER UNREACHABLE</div>
+        <button class="pixel-btn red compact" onclick="cancelMatchmaking()">CANCEL</button>
     </div>
 
     <div id="game-screen" class="screen">
         <div class="game-header">
-            <div id="turn-indicator" class="turn-box">Player 1's Turn</div>
-            <button class="back-btn compact" onclick="confirmExit()">Quit</button>
+            <div id="turn-indicator" class="turn-box">P1 TURN</div>
+            <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
-        <div id="board-container">
+        <div id="board-container" class="pixel-board-wrap">
+            <div id="goal-line-top" class="goal-line"></div>
             <div id="game-board"></div>
+            <div id="goal-line-bottom" class="goal-line"></div>
         </div>
 
         <div class="game-footer-tips">
-            Tip: Click a neighboring tile to move, or click an empty line gap to build a Barricade!
+            DO NOT ENTIRELY TRAP YOUR OPPONENT!
         </div>
     </div>
 
     <div id="help-modal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>Contact & Support</h2>
-            <p>Have questions, feedback or bugs to report? Reach out to the developer directly:</p>
+        <div class="modal-card pixel-card">
+            <h2>SUPPORT</h2>
+            <p style="font-size:11px; line-height:1.6;">Reach out to the developer directly:</p>
             <div class="contact-links">
-                <a href="mailto:riyanshu@example.com" class="contact-item email">📧 Email Support</a>
-                <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">📸 Instagram Handle</a>
+                <a href="mailto:riyanshu@example.com" class="contact-item email">EMAIL SUPPORT</a>
+                <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">INSTAGRAM</a>
             </div>
-            <button class="close-modal-btn" onclick="toggleModal('help-modal', false)">Close</button>
+            <button class="pixel-btn red compact" onclick="toggleModal('help-modal', false)">CLOSE</button>
         </div>
     </div>
 
     <div id="donation-modal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>🍩 Buy Me a Cookie!</h2>
-            <p>Your support keeps the servers running and code updates flowing!</p>
-            <div class="upi-box">
-                <strong>UPI ID:</strong> <span class="upi-text">riyanshu@upi</span>
-            </div>
+        <div class="modal-card pixel-card">
+            <h2 style="font-size:14px;">COOKIE DONATION</h2>
+            <p style="font-size:10px;">Keep the retro engine running!</p>
+            <div class="upi-box">riyanshu@upi</div>
             <div class="qr-placeholder">
                 <div class="mock-qr">
                     <div class="qr-square black"></div>
                     <div class="qr-square black alignment"></div>
-                    <div class="qr-text">[ Scan QR Code to Pay ]</div>
+                    <div class="qr-text">QR SCAN</div>
                 </div>
             </div>
-            <button class="close-modal-btn" onclick="toggleModal('donation-modal', false)">Done</button>
+            <button class="pixel-btn green compact" onclick="toggleModal('donation-modal', false)">DONE</button>
         </div>
     </div>
 
     <footer>
-        <div class="footer-text">Made by Riyanshu with love ❤️</div>
-        <div class="cookie-container" onclick="toggleModal('donation-modal', true)" title="Donate me for a cookie!">
+        <div class="footer-text">MADE BY RIYANSHU WITH LOVE ❤️</div>
+        <div class="cookie-container" onclick="toggleModal('donation-modal', true)">
             <div class="cookie-circle">🍪</div>
         </div>
     </footer>
