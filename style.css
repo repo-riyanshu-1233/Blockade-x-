@@ -1,7 +1,7 @@
 :root {
     --bg-main: #060b13;
     --bg-grid-line: #0f1826;
-    --cell-color: #ffffff; /* Smooth clean plain white board cells */
+    --cell-color: #ffffff; 
     --text-color: #ffffff;
     
     --pixel-green-top: #8edc3a; --pixel-green-bot: #5da124; --pixel-green-border: #1d3506;
@@ -59,52 +59,51 @@ body {
 .pixel-card { background: #0c1626; border: 4px solid #1c3254; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
 .input-card input { background: #040810; border: 4px solid black; padding: 14px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 100%; box-sizing: border-box; text-align: center; outline: none; }
 
-/* 🚀 GOALPOST BASELINE INDICATORS */
 .pixel-board-wrap {
     background: #080f1a; padding: 15px;
     border: 5px solid #1c3254; box-shadow: 10px 10px 0px black;
     position: relative; margin: 10px 0;
     display: flex; flex-direction: column; align-items: center;
 }
-.game-header { display: flex; width: 100%; max-width: 530px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.game-header { display: flex; width: 100%; max-width: 360px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .score-tag-retro { font-size: 0.7rem; background: #12213a; padding: 6px 12px; border: 2px dashed #00beff; }
 
-.goal-line {
-    width: 100%; text-align: center; font-size: 0.55rem; padding: 8px 0;
-    font-weight: bold; letter-spacing: 1px; border: 2px dashed transparent;
-    box-sizing: border-box; margin: 6px 0;
-}
-.goal-line.top-line { background: rgba(0, 190, 255, 0.15); color: #00beff; border-color: #00beff; }
-.goal-line.bottom-line { background: rgba(255, 82, 82, 0.15); color: #ff5252; border-color: #ff5252; }
-
-/* MATRIX ARENA GRID */
+/* 🟩 6X6 GRID DESIGN */
 #game-board { 
     display: grid; 
-    grid-template-columns: repeat(9, 55px); 
-    grid-template-rows: repeat(9, 55px); 
-    background: #0f1826; /* Grid line dividers border */
-    gap: 3px; 
+    grid-template-columns: repeat(6, 55px); 
+    grid-template-rows: repeat(6, 55px); 
+    background: #0f1826; 
+    gap: 4px; 
     position: relative; 
 }
-.cell { background: var(--cell-color); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.cell { background: var(--cell-color); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+
+/* Glowing Target Lines Indicators for Start/End Goals */
+.cell.goal-glow {
+    background-color: rgba(142, 220, 58, 0.22) !important;
+    box-shadow: inset 0 0 10px rgba(142, 220, 58, 0.5);
+}
+
 .game-piece { width: 44px; height: 44px; border-radius: 50%; z-index: 5; box-shadow: inset -4px -4px 6px rgba(0,0,0,0.4), 0 0 8px rgba(0,0,0,0.3); }
 
-/* WALL SYSTEM TRIGGER OVERLAYS */
-.wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; }
-.wall-trigger.horizontal-type { width: 113px; height: 10px; margin-top: -5px; }
-.wall-trigger.vertical-type { width: 10px; height: 113px; margin-left: -5px; }
-.wall-trigger:hover { background: rgba(0, 190, 255, 0.4); }
+/* WALL SYSTEM PIXEL PLACEMENTS WITH ACCURATE TAPS */
+.wall-trigger { position: absolute; background: rgba(255, 255, 255, 0.05); cursor: pointer; z-index: 10; transition: background 0.1s; }
+.wall-trigger.horizontal-type { width: 114px; height: 12px; transform: translate(-30px, 26px); }
+.wall-trigger.vertical-type { width: 12px; height: 114px; transform: translate(26px, -30px); }
+.wall-trigger:hover { background: rgba(0, 190, 255, 0.4) !important; }
 
 .wall-trigger.placed-wall {
-    border-radius: 8px; z-index: 15;
-    box-sizing: border-box; border: 1px solid rgba(0,0,0,0.4);
-    box-shadow: 0 3px 5px rgba(0,0,0,0.5);
+    z-index: 15;
+    box-sizing: border-box; border: 1px solid rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    pointer-events: none; /* Block further touches */
 }
 
 /* STATUS TURN BANNER PANEL */
 .live-turn-console {
     display: flex; flex-direction: column; align-items: center;
-    width: 100%; max-width: 535px; margin-top: 12px; gap: 8px;
+    width: 100%; max-width: 360px; margin-top: 12px; gap: 8px;
 }
 .turn-highlight-banner {
     width: 100%; text-align: center; padding: 12px;
@@ -129,7 +128,7 @@ body {
 #victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(3, 6, 12, 0.96); z-index: 800; display: none; }
 #victory-screen.active { display: flex; }
 #firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 801; }
-.victory-content { z-index: 802; max-width: 440px; border: 5px solid #ff9b13; }
+.victory-content { z-index: 802; max-width: 340px; border: 5px solid #ff9b13; }
 .victory-title { font-size: 1.4rem; color: #ff9b13; margin: 0 0 15px 0; }
 
 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; }
