@@ -1,10 +1,10 @@
 const GRID_SIZE = 9;
 const GAME_COLORS = {
-    red: '#d63031', blue: '#0984e3', white: '#f1f2f6', black: '#2d3436',
-    pink: '#e84393', green: '#2ecc71', yellow: '#f1c40f', purple: '#6c5ce7'
+    red: '#d63031', blue: '#0984e3', white: '#6c5ce7', black: '#2d3436',
+    pink: '#e84393', green: '#2ecc71', yellow: '#f1c40f', purple: '#121f35'
 };
 
-let gameMode = 'pass'; // pass, ai, host, client, random_match
+let gameMode = 'pass'; 
 let myRole = 'p1'; 
 let p1Color = '#d63031';
 let p2Color = '#0984e3';
@@ -33,8 +33,7 @@ function toggleModal(modalId, isOpen) {
 function triggerGameNotice(msg, isPositive = false) {
     const toast = document.getElementById('game-toast');
     const logConsole = document.getElementById('game-live-notice');
-    
-    toast.innerText = msg.toUpperCase();
+    if(toast) toast.innerText = msg.toUpperCase();
     if(logConsole) logConsole.innerText = msg.toUpperCase();
 
     if(isPositive) toast.classList.add('green-alert');
@@ -80,7 +79,7 @@ function generate5BitCode() {
 }
 
 // ==========================================
-// 🛡️ SANDBOX HUB PRIVATE HANDSHAKE
+// 🛡️ PRIVATE SANDBOX HUBS INTERACTION
 // ==========================================
 function initiateSandboxHost() {
     gameMode = 'host'; myRole = 'p1';
@@ -94,14 +93,14 @@ function initiateSandboxHost() {
     peerNode.on('connection', (conn) => {
         networkConnection = conn;
         setupNetworkListeners();
-        triggerGameNotice("SANDBOX LINK SUCCESS!", true);
+        triggerGameNotice("SANDBOX CONNECTED!", true);
         setTimeout(() => { setupFreshMatch(); }, 1000);
     });
 }
 
 function connectSandboxHost() {
     const targetCode = document.getElementById('sandbox-input-code').value.trim().toUpperCase();
-    if(targetCode.length !== 5) { triggerGameNotice("ENTER EXACT 5 CHARACTER CODE"); return; }
+    if(targetCode.length !== 5) { triggerGameNotice("ENTER VALID 5 DIGIT CODE"); return; }
 
     gameMode = 'client'; myRole = 'p2';
     p1Color = '#ff9b13'; p2Color = '#00beff';
@@ -112,20 +111,19 @@ function connectSandboxHost() {
         setupNetworkListeners();
     });
     peerNode.on('error', () => {
-        triggerGameNotice("ROOM EXPIRED OR INVALID!");
+        triggerGameNotice("INVALID HOOK ROOM!");
         showScreen('sandbox-menu-screen');
     });
 }
 
 // ==========================================
-// 🌐 GLOBAL RANDOM MATCHMAKING ENGINE (P2P FIX)
+// 🌐 RANDOM MATCH INTERACTION ENGINE
 // ==========================================
 function startRandomMatchmaking() {
     gameMode = 'random_match';
     showScreen('matchmaking-screen');
-    document.getElementById('match-status-text').innerText = "MATCHMAKING...";
+    document.getElementById('match-status-text').innerText = "LOOKING FOR ARENA...";
     
-    // Fixed numeric pool window to ensure instant global intersection sync
     const lobbyRandomTicket = Math.floor(Math.random() * 20) + 100; 
     peerNode = new Peer(cloudBrokerPrefix + "GLOBAL-POOL-" + lobbyRandomTicket);
 
@@ -136,8 +134,8 @@ function startRandomMatchmaking() {
         function probeNextLobbySlot() {
             if (sweepId > 120 || connected) {
                 if(!connected) {
-                    document.getElementById('match-status-text').innerText = "WAITING IN ROOM";
-                    document.getElementById('match-sub-status').innerText = "LOBBY ACTIVE. WAITING FOR ANY RANDOM PLAYER TO CONNECT...";
+                    document.getElementById('match-status-text').innerText = "WAITING POOL";
+                    document.getElementById('match-sub-status').innerText = "LOBBY CREATED! WAITING FOR AN OPPONENT TO TAP MATCHMAKING...";
                 }
                 return;
             }
@@ -158,7 +156,7 @@ function startRandomMatchmaking() {
                 p1Color = '#ff5252'; p2Color = '#8edc3a';
                 networkConnection = proxyConnection;
                 setupNetworkListeners();
-                triggerGameNotice("CONNECTED TO RANDOM PLAYER!", true);
+                triggerGameNotice("CONNECTED TO LIVE PLAYER!", true);
                 setupFreshMatch();
             });
         }
@@ -170,7 +168,7 @@ function startRandomMatchmaking() {
         p1Color = '#ff5252'; p2Color = '#8edc3a';
         networkConnection = incomingConn;
         setupNetworkListeners();
-        triggerGameNotice("ONLINE OPPONENT FOUND!", true);
+        triggerGameNotice("PLAYER HOOKED ON JUMP!", true);
         setTimeout(() => { setupFreshMatch(); }, 1000);
     });
 }
@@ -190,7 +188,7 @@ function setupNetworkListeners() {
         }
     });
     networkConnection.on('close', () => {
-        triggerGameNotice("OPPONENT HAS EXITED THE MATCH!");
+        triggerGameNotice("PARTNER DISCONNECTED!");
         confirmExit();
     });
 }
@@ -200,9 +198,9 @@ function disconnectPeer() {
     showScreen('menu-screen');
 }
 
-// ========================================================
-// 🎮 GAME MATRIX ENGINE & DUAL-SPAN CAPSULE WALLS
-// ========================================================
+// ==========================================
+// 🧱 MATRIX BOARD EXECUTION
+// ==========================================
 function setupFreshMatch() {
     activeTurn = 'p1';
     playerPieces = { p1: { r: 0, c: 4 }, p2: { r: 8, c: 4 } };
@@ -237,7 +235,7 @@ function renderEngine() {
         }
     }
 
-    // Render Double Block Spanned Horizontal and Vertical Capsular Traps
+    // Render Dual Span capsule intersections
     for(let r=0; r<GRID_SIZE-1; r++) {
         for(let c=0; c<GRID_SIZE-1; c++) {
             let triggerH = document.createElement('div');
@@ -272,7 +270,6 @@ function renderEngine() {
 
 function updateHeaderIndicator() {
     const bottomBanner = document.getElementById('bottom-turn-banner');
-    
     if(gameMode !== 'pass' && gameMode !== 'ai') {
         if(activeTurn === myRole) {
             bottomBanner.innerText = "YOUR TURN";
@@ -338,19 +335,19 @@ function attemptWallPlacement(type, r, c) {
 
     if(type === 'h') {
         if(hWalls[r][c] !== null || (c > 0 && hWalls[r][c-1] !== null) || (c < GRID_SIZE-2 && hWalls[r][c+1] !== null)) {
-            triggerGameNotice("⚠️ WRONG MOVE: WALL COLLISION!"); return;
+            triggerGameNotice("⚠️ WALL OVERLAP COLLISION!"); return;
         }
         hWalls[r][c] = activeColor;
     } else {
         if(vWalls[r][c] !== null || (r > 0 && vWalls[r-1][c] !== null) || (r < GRID_SIZE-2 && vWalls[r+1][c] !== null)) {
-            triggerGameNotice("⚠️ WRONG MOVE: WALL COLLISION!"); return;
+            triggerGameNotice("⚠️ WALL OVERLAP COLLISION!"); return;
         }
         vWalls[r][c] = activeColor;
     }
 
     if(!hasValidPath(playerPieces.p1, 8) || !hasValidPath(playerPieces.p2, 0)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
-        triggerGameNotice("⚠️ WRONG MOVE: PATH BLOCKED COMPLETELY!");
+        triggerGameNotice("⚠️ REJECTED: PATH CANNOT BE COMPLETELY LOCKED!");
         return;
     }
 
@@ -366,7 +363,7 @@ function processPieceMovement(tarR, tarC) {
 
     let loc = playerPieces[activeTurn];
     if((Math.abs(loc.r - tarR) === 1 && loc.c === tarC) || (loc.r === tarR && Math.abs(loc.c - tarC) === 1)) {
-        if(isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WRONG MOVE: WALL IS BLOCKING!"); return; }
+        if(isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ BLOCKED BY WALL!"); return; }
         if(playerPieces[activeTurn === 'p1' ? 'p2' : 'p1'].r === tarR && playerPieces[activeTurn === 'p1' ? 'p2' : 'p1'].c === tarC) return;
 
         playerPieces[activeTurn] = { r: tarR, c: tarC };
@@ -376,77 +373,76 @@ function processPieceMovement(tarR, tarC) {
         }
         evaluateTurnShiftOffline(true);
     } else {
-        triggerGameNotice("⚠️ WRONG MOVE: INVALID DIRECTION!");
+        triggerGameNotice("⚠️ MOVEMENT INVALID!");
     }
 }
 
 function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     renderEngine();
     if(playerPieces.p1.r === 8) return launchVictorySequence("PLAYER 1");
-    if(playerPieces.p2.r === 0) return launchVictorySequence("ROBOT 🤖");
+    if(playerPieces.p2.r === 0) return launchVictorySequence("🤖 INTELLIGENT ROBOT");
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
     updateHeaderIndicator();
 
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) {
-        setTimeout(executeAiStrategy, 500);
+        setTimeout(executeAiStrategy, 400);
     }
 }
 
 // ========================================================
-// 🤖 REAL INTELLIGENT AI ROBOT ENGINE LOGIC (FIXED)
+// 🤖 FIXED SMART PATHFINDING AI BOT SYSTEM
 // ========================================================
 function executeAiStrategy() {
     let ai = playerPieces.p2; 
     let human = playerPieces.p1;
     let actionTaken = false;
 
-    // RULE 1: AGGRESSIVE TRAPPING - Agar human goal line ke behad kareeb hai, toh block karo!
-    if (human.r >= 5 && Math.abs(ai.r - human.r) > 1) {
-        let blockRow = Math.min(human.r, GRID_SIZE - 2);
-        let blockCol = Math.min(human.c, GRID_SIZE - 2);
+    // RULE 1: APNA SHORTCUT RASTA NIKALNA (A* Pathfinding to target Row 0)
+    let bestMove = null;
+    let minDistance = Infinity;
+    let potentialMoves = [
+        {r: ai.r - 1, c: ai.c}, // Upward Shortcut
+        {r: ai.r, c: ai.c - 1}, // Left
+        {r: ai.r, c: ai.c + 1}, // Right
+        {r: ai.r + 1, c: ai.c}  // Backtrack down if stuck
+    ];
 
-        if (hWalls[blockRow][blockCol] === null && (blockCol === 0 || hWalls[blockRow][blockCol - 1] === null)) {
-            hWalls[blockRow][blockCol] = p2Color;
-            if (hasValidPath(playerPieces.p1, 8) && hasValidPath(playerPieces.p2, 0)) {
-                actionTaken = true;
-                triggerGameNotice("ROBOT PLACED A BLOCKING WALL!");
-            } else {
-                hWalls[blockRow][blockCol] = null; // Rollback
-            }
-        }
-    }
-
-    // RULE 2: SMART NAVIGATION PATHFINDING - Apne goal (Row 0) ki taraf badhna
-    if (!actionTaken) {
-        let bestMove = null;
-        let minDistance = Infinity;
-        let potentialMoves = [
-            {r: ai.r - 1, c: ai.c}, // Up
-            {r: ai.r, c: ai.c - 1}, // Left
-            {r: ai.r, c: ai.c + 1}, // Right
-            {r: ai.r + 1, c: ai.c}  // Down
-        ];
-
-        for (let m of potentialMoves) {
-            if (m.r >= 0 && m.r < GRID_SIZE && m.c >= 0 && m.c < GRID_SIZE) {
-                if (!isWallBlocking(ai.r, ai.c, m.r, m.c) && !(human.r === m.r && human.c === m.c)) {
-                    let d = getShortestPathDistance(m, 0);
-                    if (d < minDistance) {
-                        minDistance = d;
-                        bestMove = m;
-                    }
+    for (let m of potentialMoves) {
+        if (m.r >= 0 && m.r < GRID_SIZE && m.c >= 0 && m.c < GRID_SIZE) {
+            if (!isWallBlocking(ai.r, ai.c, m.r, m.c) && !(human.r === m.r && human.c === m.c)) {
+                let d = getShortestPathDistance(m, 0); // Find length to target baseline
+                if (d < minDistance) {
+                    minDistance = d;
+                    bestMove = m;
                 }
             }
         }
+    }
 
-        if (bestMove) {
-            playerPieces.p2 = bestMove;
-            actionTaken = true;
+    // RULE 2: STRATEGIC BLOCKED TRAPS - Agar human bahut aage badh raha hai, toh use aage se roko!
+    if (human.r >= 4 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.6) {
+        let targetRow = Math.min(human.r, GRID_SIZE - 2);
+        let targetCol = Math.min(human.c, GRID_SIZE - 2);
+
+        if (hWalls[targetRow][targetCol] === null && (targetCol === 0 || hWalls[targetRow][targetCol - 1] === null)) {
+            hWalls[targetRow][targetCol] = p2Color;
+            if (hasValidPath(playerPieces.p1, 8) && hasValidPath(playerPieces.p2, 0)) {
+                actionTaken = true;
+                triggerGameNotice("🤖 ROBOT STRATEGICALLY BLOCKED YOU!");
+            } else {
+                hWalls[targetRow][targetCol] = null; // Path blocking rollback validation
+            }
         }
     }
 
-    // FALLBACK RULE: Safe structural wall placement agar phas jaye
+    // If no blocking wall action was deployed, execute the pre-calculated shortest move path
+    if (!actionTaken && bestMove) {
+        playerPieces.p2 = bestMove;
+        actionTaken = true;
+    }
+
+    // FALLBACK RULE: Safe structural wall placement if absolutely caged up
     if (!actionTaken) {
         for (let attempt = 0; attempt < 20; attempt++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
@@ -465,10 +461,10 @@ function executeAiStrategy() {
 }
 
 // ==========================================
-// 🎇 RETRO FIRECRACKERS CELEBRATION ENGINE
+// 🎇 FIRECRACKER CELEBRATION
 // ==========================================
 function launchVictorySequence(winnerLabel) {
-    document.getElementById('winner-declaration-text').innerText = `${winnerLabel} HAS CONQUERED THE MATCH!`;
+    document.getElementById('winner-declaration-text').innerText = `${winnerLabel} CAPTURED THE BASELINE MATCH!`;
     showScreen('victory-screen');
     startCelebrationCanvas();
 }
@@ -513,16 +509,12 @@ function stopCelebrationCanvas() {
 }
 
 function shareVictoryTray() {
-    const shareTemplate = `🏆 I just beat the Smart Robot on Blockade X! Can you break my defenses? \n🎮 Play Real-time Multiplayer here: ${window.location.href}`;
+    const shareTemplate = `🏆 I dominated the matrix match on Blockade X! Try breaking through the defenses: ${window.location.href}`;
     if (navigator.share) {
-        navigator.share({
-            title: 'BLOCKADE X CONQUEST!',
-            text: shareTemplate,
-            url: window.location.href
-        }).catch(() => triggerGameNotice("SHARE DISMISSED"));
+        navigator.share({ title: 'BLOCKADE X ARENA', text: shareTemplate, url: window.location.href }).catch(() => {});
     } else {
         navigator.clipboard.writeText(shareTemplate);
-        triggerGameNotice("VICTORY LINK COPIED TO CLIPBOARD!", true);
+        triggerGameNotice("LINK COPIED TO CLIPBOARD!", true);
     }
 }
 
