@@ -9,8 +9,9 @@ let activeTurn = 'p1';
 
 let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
 
-let hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
-let vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
+// Dynamic Map Matrices
+let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
 let peerNode = null;
 let networkConnection = null;
@@ -37,7 +38,7 @@ function triggerGameNotice(msg, isPositive = false) {
     else toast.classList.remove('green-alert');
 
     toast.classList.remove('hide');
-    setTimeout(() => { toast.classList.add('hide'); }, 2200);
+    setTimeout(() => { toast.classList.add('hide'); }, 2000);
 }
 
 function launchDirectGame(mode) {
@@ -163,14 +164,14 @@ function disconnectPeer() {
 }
 
 // ==========================================
-// 🧱 MATRIX ENGINE GRAPHIC CORE (9X9 GRID)
+// 🧱 INDEPENDENT SINGLE CHANNELS WALL CORE
 // ==========================================
 function setupFreshMatch() {
     activeTurn = 'p1';
     playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
     
-    hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
-    vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
+    hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+    vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
     showScreen('game-screen');
     renderEngine();
@@ -180,6 +181,7 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
+    // Build Cells First
     for(let r=0; r<GRID_SIZE; r++) {
         for(let c=0; c<GRID_SIZE; c++) {
             let cell = document.createElement('div');
@@ -205,33 +207,36 @@ function renderEngine() {
         }
     }
 
-    for(let r=0; r<GRID_SIZE-1; r++) {
-        for(let c=0; c<GRID_SIZE-1; c++) {
-            let triggerH = document.createElement('div');
-            triggerH.className = 'wall-trigger horizontal-type';
-            triggerH.style.left = `${c * 48}px`;
-            triggerH.style.top = `${r * 48}px`;
-            
-            if(hWalls[r][c] !== null) {
-                triggerH.classList.add('placed-wall');
-                triggerH.style.backgroundColor = hWalls[r][c];
-            } else {
-                triggerH.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('h', r, c); };
-            }
-            board.appendChild(triggerH);
+    // Attach Isolated Micro Trigger Panels
+    for(let r=0; r<GRID_SIZE; r++) {
+        for(let c=0; c<GRID_SIZE; c++) {
+            let cellDiv = document.getElementById(`cell-${r}-${c}`);
 
-            let triggerV = document.createElement('div');
-            triggerV.className = 'wall-trigger vertical-type';
-            triggerV.style.left = `${c * 48}px`;
-            triggerV.style.top = `${r * 48}px`;
-            
-            if(vWalls[r][c] !== null) {
-                triggerV.classList.add('placed-wall');
-                triggerV.style.backgroundColor = vWalls[r][c];
-            } else {
-                triggerV.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('v', r, c); };
+            // Absolute Single Horizontal Segment Edge Trigger
+            if(r < GRID_SIZE - 1) {
+                let triggerH = document.createElement('div');
+                triggerH.className = 'wall-trigger horizontal-type';
+                if(hWalls[r][c] !== null) {
+                    triggerH.classList.add('placed-wall');
+                    triggerH.style.backgroundColor = hWalls[r][c];
+                } else {
+                    triggerH.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('h', r, c); };
+                }
+                cellDiv.appendChild(triggerH);
             }
-            board.appendChild(triggerV);
+
+            // Absolute Single Vertical Segment Edge Trigger
+            if(c < GRID_SIZE - 1) {
+                let triggerV = document.createElement('div');
+                triggerV.className = 'wall-trigger vertical-type';
+                if(vWalls[r][c] !== null) {
+                    triggerV.classList.add('placed-wall');
+                    triggerV.style.backgroundColor = vWalls[r][c];
+                } else {
+                    triggerV.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('v', r, c); };
+                }
+                cellDiv.appendChild(triggerV);
+            }
         }
     }
     updateHeaderIndicator();
@@ -254,21 +259,18 @@ function updateHeaderIndicator() {
 }
 
 function isWallBlocking(r1, c1, r2, c2) {
-    if (r1 === r2) {
+    if (r1 === r2) { // Horizontal step
         let minC = Math.min(c1, c2);
-        if (minC < 0 || minC >= GRID_SIZE - 1) return false;
         if (vWalls[r1][minC] !== null) return true;
-        if (r1 > 0 && vWalls[r1 - 1][minC] !== null) return true;
     }
-    if (c1 === c2) {
+    if (c1 === c2) { // Vertical step
         let minR = Math.min(r1, r2);
-        if (minR < 0 || minR >= GRID_SIZE - 1) return false;
         if (hWalls[minR][c1] !== null) return true;
-        if (c1 > 0 && hWalls[minR][c1 - 1] !== null) return true;
     }
     return false;
 }
 
+// ADVANCED PATHFINDING BFS SHORTEST PATH EVALUATOR
 function getShortestPathDistance(startPos, targetRow) {
     let visited = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
     let queue = [{r: startPos.r, c: startPos.c, dist: 0}];
@@ -303,17 +305,14 @@ function attemptWallPlacement(type, r, c) {
     let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
 
     if(type === 'h') {
-        if(hWalls[r][c] !== null || (c > 0 && hWalls[r][c-1] !== null) || (c < GRID_SIZE-2 && hWalls[r][c+1] !== null)) {
-            triggerGameNotice("⚠️ WALL COLLISION EXCEEDED!"); return;
-        }
+        if(hWalls[r][c] !== null) return;
         hWalls[r][c] = activeColor;
     } else {
-        if(vWalls[r][c] !== null || (r > 0 && vWalls[r-1][c] !== null) || (r < GRID_SIZE-2 && vWalls[r+1][c] !== null)) {
-            triggerGameNotice("⚠️ WALL COLLISION EXCEEDED!"); return;
-        }
+        if(vWalls[r][c] !== null) return;
         vWalls[r][c] = activeColor;
     }
 
+    // ANTI-BLOCKING PROTOCOL (Path Protection Rule)
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
@@ -334,7 +333,9 @@ function processPieceMovement(tarR, tarC) {
     let loc = playerPieces[activeTurn];
     if((Math.abs(loc.r - tarR) === 1 && loc.c === tarC) || (loc.r === tarR && Math.abs(loc.c - tarC) === 1)) {
         if(isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED MOVEMENTS!"); return; }
-        if(playerPieces[activeTurn === 'p1' ? 'p2' : 'p1'].r === tarR && playerPieces[activeTurn === 'p1' ? 'p2' : 'p1'].c === tarC) return;
+        
+        let oppPlayer = (activeTurn === 'p1') ? 'p2' : 'p1';
+        if(playerPieces[oppPlayer].r === tarR && playerPieces[oppPlayer].c === tarC) return;
 
         playerPieces[activeTurn] = { r: tarR, c: tarC };
 
@@ -343,7 +344,7 @@ function processPieceMovement(tarR, tarC) {
         }
         evaluateTurnShiftOffline(true);
     } else {
-        triggerGameNotice("⚠️ DIRECTION WRONG!");
+        triggerGameNotice("⚠️ INVALID TRACK DIRECTION!");
     }
 }
 
@@ -373,7 +374,7 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     updateHeaderIndicator();
 
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) {
-        setTimeout(executeAiStrategy, 300);
+        setTimeout(executeAdvancedRobotAI, 400);
     }
 }
 
@@ -413,80 +414,85 @@ function launchVictorySequence(winner) {
     startCelebrationCanvas();
 }
 
-// ========================================================
-// 🤖 9X9 SMART ROBOT ENGINE
-// ========================================================
-function executeAiStrategy() {
+// ========================================================================
+// 🤖 ADVANCED A* SHORTEST PATH COMPETITIVE ROBOT AI ENGINE (NO MORE STUCK)
+// ========================================================================
+function executeAdvancedRobotAI() {
     let ai = playerPieces.p2;     
     let human = playerPieces.p1;  
     let actionTaken = false;
 
-    if (human.r <= 5 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.45) {
-        let blockRow = Math.max(0, human.r - 1); 
-        let blockCol = Math.min(human.c, GRID_SIZE - 2);
+    let humanDist = getShortestPathDistance(human, 0);
+    let aiDist = getShortestPathDistance(ai, GRID_SIZE - 1);
 
-        if (blockRow < GRID_SIZE - 1 && blockCol < GRID_SIZE - 1 && hWalls[blockRow][blockCol] === null) {
-            hWalls[blockRow][blockCol] = P2_COLOR;
+    // Dynamic Defense: If human is dangerously close to victory line, block them!
+    if (humanDist <= aiDist && human.r > 0) {
+        let blockR = human.r - 1;
+        let blockC = human.c;
+        if(blockR >= 0 && hWalls[blockR][blockC] === null) {
+            hWalls[blockR][blockC] = P2_COLOR;
             if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
                 actionTaken = true;
-                triggerGameNotice("🤖 ROBOT STRATEGICALLY BLOCKED YOU!");
+                triggerGameNotice("🤖 ROBOT TRAPPED YOUR LINE!");
             } else {
-                hWalls[blockRow][blockCol] = null; 
+                hWalls[blockR][blockC] = null; // Revert if violates protection rule
             }
         }
     }
 
+    // Offense Aggression: Trace path step mapping
     if (!actionTaken) {
-        let bestMove = null;
-        let minDistance = Infinity;
-        let potentialMoves = [
-            {r: ai.r + 1, c: ai.c}, 
+        let bestStep = null;
+        let minPathLength = Infinity;
+        let validSteps = [
+            {r: ai.r + 1, c: ai.c}, // Forward Goal Direct
             {r: ai.r, c: ai.c - 1}, 
             {r: ai.r, c: ai.c + 1}, 
-            {r: ai.r - 1, c: ai.c}  
+            {r: ai.r - 1, c: ai.c}
         ];
 
-        for (let m of potentialMoves) {
-            if (m.r >= 0 && m.r < GRID_SIZE && m.c >= 0 && m.c < GRID_SIZE) {
-                if (!isWallBlocking(ai.r, ai.c, m.r, m.c) && !(human.r === m.r && human.c === m.c)) {
-                    let d = getShortestPathDistance(m, GRID_SIZE - 1); 
-                    if (d < minDistance) {
-                        minDistance = d;
-                        bestMove = m;
+        for (let step of validSteps) {
+            if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
+                if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
+                    let d = getShortestPathDistance(step, GRID_SIZE - 1);
+                    if (d < minPathLength) {
+                        minPathLength = d;
+                        bestStep = step;
                     }
                 }
             }
         }
 
-        if (bestMove) {
-            playerPieces.p2 = bestMove;
+        if (bestStep) {
+            playerPieces.p2 = bestStep;
             actionTaken = true;
         }
     }
 
+    // Smart Fallback Random Wall Intercept Trigger
     if (!actionTaken) {
-        for (let attempt = 0; attempt < 6; attempt++) {
+        for (let tr = 0; tr < 15; tr++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
             let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
-            if (vWalls[rr][rc] === null) {
+            if (hWalls[rr][rc] === null && Math.random() > 0.5) {
+                hWalls[rr][rc] = P2_COLOR;
+                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) { actionTaken = true; break; }
+                hWalls[rr][rc] = null;
+            } else if (vWalls[rr][rc] === null) {
                 vWalls[rr][rc] = P2_COLOR;
-                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                    actionTaken = true; 
-                    break;
-                }
+                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) { actionTaken = true; break; }
                 vWalls[rr][rc] = null;
             }
         }
     }
 
+    // Deadlock Safe Move Escape Hatch
     if (!actionTaken) {
-        let fallbackMoves = [
-            {r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}
-        ];
-        for (let m of fallbackMoves) {
-            if (m.r >= 0 && m.r < GRID_SIZE && m.c >= 0 && m.c < GRID_SIZE) {
-                if (!isWallBlocking(ai.r, ai.c, m.r, m.c) && !(human.r === m.r && human.c === m.c)) {
-                    playerPieces.p2 = m;
+        let escapes = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
+        for (let esc of escapes) {
+            if (esc.r >= 0 && esc.r < GRID_SIZE && esc.c >= 0 && esc.c < GRID_SIZE) {
+                if (!isWallBlocking(ai.r, ai.c, esc.r, esc.c) && !(human.r === esc.r && human.c === esc.c)) {
+                    playerPieces.p2 = esc;
                     break;
                 }
             }
