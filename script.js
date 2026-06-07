@@ -1,7 +1,7 @@
 const GRID_SIZE = 9; 
 
-const P1_COLOR = '#ff5252'; 
-const P2_COLOR = '#00beff'; 
+const P1_COLOR = '#ff5252'; // Player 1 (Red)
+const P2_COLOR = '#00beff'; // Player 2 / AI (Blue)
 
 let gameMode = 'pass'; 
 let myRole = 'p1'; 
@@ -9,7 +9,7 @@ let activeTurn = 'p1';
 
 let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
 
-// Dynamic Map Matrices
+// Dynamic Maps Grid Allocations
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
@@ -163,9 +163,9 @@ function disconnectPeer() {
     showScreen('menu-screen');
 }
 
-// ==========================================
-// 🧱 INDEPENDENT SINGLE CHANNELS WALL CORE
-// ==========================================
+// ===============================================
+// 🧱 BOARD GRAPHICS ENGINE & COLOR INJECTION
+// ===============================================
 function setupFreshMatch() {
     activeTurn = 'p1';
     playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
@@ -181,7 +181,7 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
-    // Build Cells First
+    // Render Matrix Cells 
     for(let r=0; r<GRID_SIZE; r++) {
         for(let c=0; c<GRID_SIZE; c++) {
             let cell = document.createElement('div');
@@ -207,31 +207,33 @@ function renderEngine() {
         }
     }
 
-    // Attach Isolated Micro Trigger Panels
+    // Embed Wall Slots with Absolute Respective Dynamic Colors
     for(let r=0; r<GRID_SIZE; r++) {
         for(let c=0; c<GRID_SIZE; c++) {
             let cellDiv = document.getElementById(`cell-${r}-${c}`);
 
-            // Absolute Single Horizontal Segment Edge Trigger
+            // Horizontal Triggers
             if(r < GRID_SIZE - 1) {
                 let triggerH = document.createElement('div');
                 triggerH.className = 'wall-trigger horizontal-type';
                 if(hWalls[r][c] !== null) {
                     triggerH.classList.add('placed-wall');
-                    triggerH.style.backgroundColor = hWalls[r][c];
+                    triggerH.style.backgroundColor = hWalls[r][c]; 
+                    triggerH.style.boxShadow = `0 0 10px ${hWalls[r][c]}`; 
                 } else {
                     triggerH.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('h', r, c); };
                 }
                 cellDiv.appendChild(triggerH);
             }
 
-            // Absolute Single Vertical Segment Edge Trigger
+            // Vertical Triggers
             if(c < GRID_SIZE - 1) {
                 let triggerV = document.createElement('div');
                 triggerV.className = 'wall-trigger vertical-type';
                 if(vWalls[r][c] !== null) {
                     triggerV.classList.add('placed-wall');
-                    triggerV.style.backgroundColor = vWalls[r][c];
+                    triggerV.style.backgroundColor = vWalls[r][c]; 
+                    triggerV.style.boxShadow = `0 0 10px ${vWalls[r][c]}`; 
                 } else {
                     triggerV.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('v', r, c); };
                 }
@@ -259,18 +261,18 @@ function updateHeaderIndicator() {
 }
 
 function isWallBlocking(r1, c1, r2, c2) {
-    if (r1 === r2) { // Horizontal step
+    if (r1 === r2) { 
         let minC = Math.min(c1, c2);
         if (vWalls[r1][minC] !== null) return true;
     }
-    if (c1 === c2) { // Vertical step
+    if (c1 === c2) { 
         let minR = Math.min(r1, r2);
         if (hWalls[minR][c1] !== null) return true;
     }
     return false;
 }
 
-// ADVANCED PATHFINDING BFS SHORTEST PATH EVALUATOR
+// A* CALCULATION SYSTEM FOR BOTH SIDES
 function getShortestPathDistance(startPos, targetRow) {
     let visited = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
     let queue = [{r: startPos.r, c: startPos.c, dist: 0}];
@@ -312,7 +314,7 @@ function attemptWallPlacement(type, r, c) {
         vWalls[r][c] = activeColor;
     }
 
-    // ANTI-BLOCKING PROTOCOL (Path Protection Rule)
+    // ANTI-BLOCKING SAFE PATH PROTOCOL
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
@@ -414,9 +416,9 @@ function launchVictorySequence(winner) {
     startCelebrationCanvas();
 }
 
-// ========================================================================
-// 🤖 ADVANCED A* SHORTEST PATH COMPETITIVE ROBOT AI ENGINE (NO MORE STUCK)
-// ========================================================================
+// =========================================================================
+// 🤖 COMPETITIVE ADVANCED ROBOT ENGINE (A* SHORTEST PATH MECHANISM)
+// =========================================================================
 function executeAdvancedRobotAI() {
     let ai = playerPieces.p2;     
     let human = playerPieces.p1;  
@@ -425,7 +427,7 @@ function executeAdvancedRobotAI() {
     let humanDist = getShortestPathDistance(human, 0);
     let aiDist = getShortestPathDistance(ai, GRID_SIZE - 1);
 
-    // Dynamic Defense: If human is dangerously close to victory line, block them!
+    // Hardcore Intercept Rule: If human is near, drop block wall dynamically!
     if (humanDist <= aiDist && human.r > 0) {
         let blockR = human.r - 1;
         let blockC = human.c;
@@ -435,17 +437,17 @@ function executeAdvancedRobotAI() {
                 actionTaken = true;
                 triggerGameNotice("🤖 ROBOT TRAPPED YOUR LINE!");
             } else {
-                hWalls[blockR][blockC] = null; // Revert if violates protection rule
+                hWalls[blockR][blockC] = null; 
             }
         }
     }
 
-    // Offense Aggression: Trace path step mapping
+    // Path Tracking Core Strategy
     if (!actionTaken) {
         let bestStep = null;
         let minPathLength = Infinity;
         let validSteps = [
-            {r: ai.r + 1, c: ai.c}, // Forward Goal Direct
+            {r: ai.r + 1, c: ai.c}, 
             {r: ai.r, c: ai.c - 1}, 
             {r: ai.r, c: ai.c + 1}, 
             {r: ai.r - 1, c: ai.c}
@@ -469,7 +471,7 @@ function executeAdvancedRobotAI() {
         }
     }
 
-    // Smart Fallback Random Wall Intercept Trigger
+    // Secondary Aggressive Strategic Wall Deployment Loop
     if (!actionTaken) {
         for (let tr = 0; tr < 15; tr++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
@@ -486,7 +488,7 @@ function executeAdvancedRobotAI() {
         }
     }
 
-    // Deadlock Safe Move Escape Hatch
+    // Emergency Deadlock Escape Vector
     if (!actionTaken) {
         let escapes = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
         for (let esc of escapes) {
