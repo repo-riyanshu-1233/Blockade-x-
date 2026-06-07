@@ -16,7 +16,7 @@
 
     <div id="menu-screen" class="screen active">
         <h1 class="game-title">BLOCKADE X</h1>
-        <p class="game-subtitle">RED VS BLUE : ULTIMATE ARENA</p>
+        <p class="game-subtitle">RED VS BLUE : 6X6 ARENA</p>
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="launchDirectGame('pass')">PASS & PLAY</button>
@@ -64,19 +64,17 @@
 
     <div id="game-screen" class="screen">
         <div class="game-header">
-            <div class="score-tag-retro">MATRIX: 9X9</div>
+            <div class="score-tag-retro">MATRIX: 6X6</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
         <div id="board-container" class="pixel-board-wrap">
-            <div id="goal-line-top" class="goal-line top-line">🔴 RED PLAYER END LINE / 🔵 BLUE AI START</div>
             <div id="game-board"></div>
-            <div id="goal-line-bottom" class="goal-line bottom-line">🔴 RED PLAYER START / 🔵 BLUE AI END LINE</div>
         </div>
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
-            <div id="game-live-notice" class="action-logs-footer">CROSS THE OPPONENT VISIBLE BORDER TO WIN!</div>
+            <div id="game-live-notice" class="action-logs-footer">REACH THE GREEN GLOW ROW TO WIN!</div>
         </div>
     </div>
 
