@@ -1,4 +1,4 @@
-const GRID_SIZE = 9; // RESTORED BACK TO ORIGINAL 9X9
+const GRID_SIZE = 9; 
 
 const P1_COLOR = '#ff5252'; 
 const P2_COLOR = '#00beff'; 
@@ -7,7 +7,6 @@ let gameMode = 'pass';
 let myRole = 'p1'; 
 let activeTurn = 'p1'; 
 
-// ORIGINAL POSITIONS IN 9X9 (P1 at bottom center, P2/Robot at top center)
 let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
 
 let hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
@@ -181,14 +180,12 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
-    // Create Base Grid Cells for 9x9
     for(let r=0; r<GRID_SIZE; r++) {
         for(let c=0; c<GRID_SIZE; c++) {
             let cell = document.createElement('div');
             cell.className = 'cell';
             cell.id = `cell-${r}-${c}`;
             
-            // Faint green indicator row for winning zones
             if(r === 0 || r === (GRID_SIZE - 1)) {
                 cell.classList.add('goal-glow');
             }
@@ -208,10 +205,8 @@ function renderEngine() {
         }
     }
 
-    // Generate Wall Overlay Nodes onto Specific Relative Spots
     for(let r=0; r<GRID_SIZE-1; r++) {
         for(let c=0; c<GRID_SIZE-1; c++) {
-            // Horizontal Trigger Line
             let triggerH = document.createElement('div');
             triggerH.className = 'wall-trigger horizontal-type';
             triggerH.style.left = `${c * 48}px`;
@@ -225,7 +220,6 @@ function renderEngine() {
             }
             board.appendChild(triggerH);
 
-            // Vertical Trigger Line
             let triggerV = document.createElement('div');
             triggerV.className = 'wall-trigger vertical-type';
             triggerV.style.left = `${c * 48}px`;
@@ -302,7 +296,6 @@ function hasValidPath(startPos, targetRow) {
     return getShortestPathDistance(startPos, targetRow) !== Infinity;
 }
 
-// 🎯 INSTANT REGISTER WALL FUNCTION WITH FIXED INDEXES
 function attemptWallPlacement(type, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -366,13 +359,13 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     
     if(playerPieces.p1.r === 0) {
         paintBoardOnVictory(P1_COLOR);
-        setTimeout(() => { launchVictorySequence("🔴 RED PLAYER 1"); }, 500);
+        setTimeout(() => { launchVictorySequence("red"); }, 400);
         return;
     }
     
     if(playerPieces.p2.r === GRID_SIZE - 1) {
         paintBoardOnVictory(P2_COLOR);
-        setTimeout(() => { launchVictorySequence("🔵 SMART BLUE ROBOT"); }, 500);
+        setTimeout(() => { launchVictorySequence("blue"); }, 400);
         return;
     }
 
@@ -384,15 +377,50 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     }
 }
 
+function launchVictorySequence(winner) {
+    const titleHeader = document.getElementById('victory-header-status');
+    const subtitleText = document.getElementById('winner-declaration-text');
+    const cardBox = document.getElementById('victory-card-box');
+
+    if (gameMode === 'ai') {
+        if (winner === 'red') {
+            titleHeader.innerText = "VICTORY!";
+            titleHeader.style.color = "#ff9b13";
+            subtitleText.innerText = "CONGRATULATIONS FOR RED PLAYER";
+            subtitleText.style.color = "#8edc3a";
+            cardBox.style.borderColor = "#ff9b13";
+        } else {
+            titleHeader.innerText = "YOU LOOSE!";
+            titleHeader.style.color = "#ff5252";
+            subtitleText.innerText = "BETTER LUCK NEXT TIME";
+            subtitleText.style.color = "#ff5252";
+            cardBox.style.borderColor = "#ff5252";
+        }
+    } else {
+        titleHeader.innerText = "VICTORY!";
+        titleHeader.style.color = "#ff9b13";
+        cardBox.style.borderColor = "#ff9b13";
+        if (winner === 'red') {
+            subtitleText.innerText = "CONGRATULATIONS FOR RED PLAYER";
+            subtitleText.style.color = P1_COLOR;
+        } else {
+            subtitleText.innerText = "CONGRATULATIONS FOR BLUE PLAYER";
+            subtitleText.style.color = P2_COLOR;
+        }
+    }
+
+    showScreen('victory-screen');
+    startCelebrationCanvas();
+}
+
 // ========================================================
-// 🤖 9X9 CALIBRATED RE-ENGINEERED SMART ROBOT (NO STUCK)
+// 🤖 9X9 SMART ROBOT ENGINE
 // ========================================================
 function executeAiStrategy() {
     let ai = playerPieces.p2;     
     let human = playerPieces.p1;  
     let actionTaken = false;
 
-    // RULE 1: SMART WALL TRAP
     if (human.r <= 5 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.45) {
         let blockRow = Math.max(0, human.r - 1); 
         let blockCol = Math.min(human.c, GRID_SIZE - 2);
@@ -408,7 +436,6 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 2: A* OPTIMAL PATHFINDING TO BOTTOM ROW 8
     if (!actionTaken) {
         let bestMove = null;
         let minDistance = Infinity;
@@ -437,7 +464,6 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 3: SAFE FINITE WALL DEPLOYMENT (Max 6 tries to keep it fluid)
     if (!actionTaken) {
         for (let attempt = 0; attempt < 6; attempt++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
@@ -453,7 +479,6 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 4: GUARANTEED ESCAPE STEP (Absolutely no locks or frozen states)
     if (!actionTaken) {
         let fallbackMoves = [
             {r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}
@@ -474,12 +499,6 @@ function executeAiStrategy() {
 // ==========================================
 // 🎇 CELEBRATION DISPLAYS
 // ==========================================
-function launchVictorySequence(winnerLabel) {
-    document.getElementById('winner-declaration-text').innerText = `${winnerLabel} WON THE TOURNAMENT!`;
-    showScreen('victory-screen');
-    startCelebrationCanvas();
-}
-
 function startCelebrationCanvas() {
     const canvas = document.getElementById('firecracker-canvas');
     const ctx = canvas.getContext('2d');
