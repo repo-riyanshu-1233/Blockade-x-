@@ -1,6 +1,5 @@
-const GRID_SIZE = 9;
+const GRID_SIZE = 6; // RESIZED ENGINE TO 6X6
 
-// Pure Locked Color System: Player 1 (Red) & Player 2 / Robot (Blue)
 const P1_COLOR = '#ff5252'; 
 const P2_COLOR = '#00beff'; 
 
@@ -8,8 +7,8 @@ let gameMode = 'pass';
 let myRole = 'p1'; 
 let activeTurn = 'p1'; 
 
-// FIXED INITIAL POSITIONS: P1 starts at the bottom row (8), Robot/P2 at the top row (0)
-let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
+// INITIAL POSITIONS FOR 6X6 (P1 at bottom row index 5, P2/Robot at top row index 0)
+let playerPieces = { p1: { r: 5, c: 2 }, p2: { r: 0, c: 3 } };
 
 let hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
 let vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
@@ -17,7 +16,7 @@ let vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill
 let peerNode = null;
 let networkConnection = null;
 let firecrackerInterval = null;
-const cloudBrokerPrefix = "BLKD-X9-"; 
+const cloudBrokerPrefix = "BLKD-X6-"; 
 
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -56,12 +55,11 @@ function generate5BitCode() {
 }
 
 // ==========================================
-// 🛡️ PRIVATE MULTIPLAYER HOOKS
+// 🛡️ MULTIPLAYER ENGINE NETWORK
 // ==========================================
 function initiateSandboxHost() {
     gameMode = 'host'; myRole = 'p1';
     showScreen('sandbox-host-screen');
-    
     const roomCode = generate5BitCode();
     document.getElementById('sandbox-code-display').innerText = roomCode;
 
@@ -77,7 +75,6 @@ function initiateSandboxHost() {
 function connectSandboxHost() {
     const targetCode = document.getElementById('sandbox-input-code').value.trim().toUpperCase();
     if(targetCode.length !== 5) { triggerGameNotice("ENTER EXACT 5 VALUE CODE"); return; }
-
     gameMode = 'client'; myRole = 'p2';
 
     peerNode = new Peer();
@@ -91,9 +88,6 @@ function connectSandboxHost() {
     });
 }
 
-// ==========================================
-// 🌐 GLOBAL MATCHMAKING SYSTEM 
-// ==========================================
 function startRandomMatchmaking() {
     gameMode = 'random_match';
     showScreen('matchmaking-screen');
@@ -110,14 +104,12 @@ function startRandomMatchmaking() {
             if (sweepId > 120 || connected) {
                 if(!connected) {
                     document.getElementById('match-status-text').innerText = "WAITING POOL";
-                    document.getElementById('match-sub-status').innerText = "LOBBY RECOGNIZED. WAITING FOR CONNECTIVITY SLOTS...";
                 }
                 return;
             }
             if (sweepId === lobbyRandomTicket) { sweepId++; probeNextLobbySlot(); return; }
 
             let proxyConnection = peerNode.connect(cloudBrokerPrefix + "GLOBAL-POOL-" + sweepId);
-            
             let joinWatchdog = setTimeout(() => {
                 proxyConnection.close();
                 sweepId++;
@@ -172,11 +164,11 @@ function disconnectPeer() {
 }
 
 // ==========================================
-// 🧱 MATRIX ENGINE GRAPHIC CORE
+// 🧱 MATRIX ENGINE GRAPHIC CORE (6X6 ACCURATE)
 // ==========================================
 function setupFreshMatch() {
     activeTurn = 'p1';
-    playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
+    playerPieces = { p1: { r: 5, c: 2 }, p2: { r: 0, c: 3 } };
     
     hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
     vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
@@ -194,6 +186,11 @@ function renderEngine() {
             let cell = document.createElement('div');
             cell.className = 'cell';
             cell.id = `cell-${r}-${c}`;
+            
+            if(r === 0 || r === (GRID_SIZE - 1)) {
+                cell.classList.add('goal-glow');
+            }
+
             cell.onclick = () => processPieceMovement(r, c);
 
             if(playerPieces.p1.r === r && playerPieces.p1.c === c) {
@@ -209,13 +206,12 @@ function renderEngine() {
         }
     }
 
-    // Double Span Trigger Setup
     for(let r=0; r<GRID_SIZE-1; r++) {
         for(let c=0; c<GRID_SIZE-1; c++) {
             let triggerH = document.createElement('div');
             triggerH.className = 'wall-trigger horizontal-type';
-            triggerH.style.left = `${c * 58}px`;
-            triggerH.style.top = `${(r + 1) * 55 + r * 3}px`;
+            triggerH.style.left = `${c * 59}px`;
+            triggerH.style.top = `${r * 59}px`;
             
             if(hWalls[r][c] !== null) {
                 triggerH.classList.add('placed-wall');
@@ -227,8 +223,8 @@ function renderEngine() {
 
             let triggerV = document.createElement('div');
             triggerV.className = 'wall-trigger vertical-type';
-            triggerV.style.left = `${(c + 1) * 55 + c * 3}px`;
-            triggerV.style.top = `${r * 58}px`;
+            triggerV.style.left = `${c * 59}px`;
+            triggerV.style.top = `${r * 59}px`;
             
             if(vWalls[r][c] !== null) {
                 triggerV.classList.add('placed-wall');
@@ -301,7 +297,6 @@ function hasValidPath(startPos, targetRow) {
     return getShortestPathDistance(startPos, targetRow) !== Infinity;
 }
 
-// FIXED: Wall tap triggers immediate visual apply and instantly switches the turn!
 function attemptWallPlacement(type, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -320,7 +315,7 @@ function attemptWallPlacement(type, r, c) {
         vWalls[r][c] = activeColor;
     }
 
-    if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, 8)) {
+    if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
         return;
@@ -330,7 +325,6 @@ function attemptWallPlacement(type, r, c) {
         networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
     }
     
-    // INSTANT TURN SHIFT: No extra move required!
     evaluateTurnShiftOffline(true);
 }
 
@@ -370,7 +364,7 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
         return;
     }
     
-    if(playerPieces.p2.r === 8) {
+    if(playerPieces.p2.r === GRID_SIZE - 1) {
         paintBoardOnVictory(P2_COLOR);
         setTimeout(() => { launchVictorySequence("🔵 SMART BLUE ROBOT"); }, 500);
         return;
@@ -380,26 +374,26 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     updateHeaderIndicator();
 
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) {
-        setTimeout(executeAiStrategy, 400);
+        setTimeout(executeAiStrategy, 300);
     }
 }
 
 // ========================================================
-// 🤖 CORE AI PATHFINDING ROBOT ENGINE
+// 🤖 6X6 CONFIGURED NO-FREEZE SMART AI ROBOT
 // ========================================================
 function executeAiStrategy() {
     let ai = playerPieces.p2;     
     let human = playerPieces.p1;  
     let actionTaken = false;
 
-    // RULE 1: STRATEGIC BLOCKING TRAPS
-    if (human.r <= 4 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.65) {
+    // RULE 1: SMART TRAP BLOCKING (No endless loops)
+    if (human.r <= 3 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.50) {
         let blockRow = Math.max(0, human.r - 1); 
         let blockCol = Math.min(human.c, GRID_SIZE - 2);
 
-        if (hWalls[blockRow][blockCol] === null && (blockCol === 0 || hWalls[blockRow][blockCol - 1] === null)) {
+        if (blockRow < GRID_SIZE - 1 && blockCol < GRID_SIZE - 1 && hWalls[blockRow][blockCol] === null) {
             hWalls[blockRow][blockCol] = P2_COLOR;
-            if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, 8)) {
+            if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
                 actionTaken = true;
                 triggerGameNotice("🤖 ROBOT STRATEGICALLY BLOCKED YOU!");
             } else {
@@ -408,7 +402,7 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 2: A* NAVIGATION MOVEMENTS (Targeting Row 8)
+    // RULE 2: ROBUST PATHFINDING MOVE (Target Row = 5)
     if (!actionTaken) {
         let bestMove = null;
         let minDistance = Infinity;
@@ -422,7 +416,7 @@ function executeAiStrategy() {
         for (let m of potentialMoves) {
             if (m.r >= 0 && m.r < GRID_SIZE && m.c >= 0 && m.c < GRID_SIZE) {
                 if (!isWallBlocking(ai.r, ai.c, m.r, m.c) && !(human.r === m.r && human.c === m.c)) {
-                    let d = getShortestPathDistance(m, 8); 
+                    let d = getShortestPathDistance(m, GRID_SIZE - 1); 
                     if (d < minDistance) {
                         minDistance = d;
                         bestMove = m;
@@ -437,17 +431,33 @@ function executeAiStrategy() {
         }
     }
 
-    // FALLBACK STRUCTURAL DEPLOYMENT
+    // RULE 3: SAFE FALLBACK (Maximum 8 fast checks to prevent freezing)
     if (!actionTaken) {
-        for (let attempt = 0; attempt < 15; attempt++) {
+        for (let attempt = 0; attempt < 8; attempt++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
             let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
             if (vWalls[rr][rc] === null) {
                 vWalls[rr][rc] = P2_COLOR;
-                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, 8)) {
-                    actionTaken = true; break;
+                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
+                    actionTaken = true; 
+                    break;
                 }
                 vWalls[rr][rc] = null;
+            }
+        }
+    }
+
+    // RULE 4: ABSOLUTE EMERGENCY STEP (If everything else is blocked, just make a legal move)
+    if (!actionTaken) {
+        let fallbackMoves = [
+            {r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}
+        ];
+        for (let m of fallbackMoves) {
+            if (m.r >= 0 && m.r < GRID_SIZE && m.c >= 0 && m.c < GRID_SIZE) {
+                if (!isWallBlocking(ai.r, ai.c, m.r, m.c) && !(human.r === m.r && human.c === m.c)) {
+                    playerPieces.p2 = m;
+                    break;
+                }
             }
         }
     }
@@ -472,7 +482,7 @@ function startCelebrationCanvas() {
     let particles = [];
     function spawnBurst() {
         let sx = Math.random() * canvas.width; let sy = Math.random() * (canvas.height * 0.5);
-        let pallet = [P1_COLOR, P2_COLOR, '#8edc3a', '#ff9b13', '#f1c40f'];
+        let pallet = [P1_COLOR, P2_COLOR, '#8edc3a', '#ff9b13'];
         let shardColor = pallet[Math.floor(Math.random() * pallet.length)];
         for(let i=0; i<40; i++) {
             particles.push({
