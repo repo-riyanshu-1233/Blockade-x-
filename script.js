@@ -163,9 +163,9 @@ function disconnectPeer() {
     showScreen('menu-screen');
 }
 
-// ===============================================
-// 🧱 BOARD GRAPHICS ENGINE & COLOR INJECTION
-// ===============================================
+// ==========================================================
+// 🧱 BOARD ENGINE: 100% SMART ANTI-MIS-TAP SMART INTENT LOGIC
+// ==========================================================
 function setupFreshMatch() {
     activeTurn = 'p1';
     playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
@@ -181,7 +181,6 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
-    // Render Matrix Cells 
     for(let r=0; r<GRID_SIZE; r++) {
         for(let c=0; c<GRID_SIZE; c++) {
             let cell = document.createElement('div');
@@ -192,8 +191,10 @@ function renderEngine() {
                 cell.classList.add('goal-glow');
             }
 
-            cell.onclick = () => processPieceMovement(r, c);
+            // SMART MULTI-ZONE TOUCH INTERCEPTOR (Prevents Mis-Taps completely)
+            cell.onclick = (event) => handleSmartCellTouch(event, r, c);
 
+            // Append Player Token
             if(playerPieces.p1.r === r && playerPieces.p1.c === c) {
                 let piece = document.createElement('div');
                 piece.className = 'game-piece'; piece.style.backgroundColor = P1_COLOR;
@@ -203,45 +204,50 @@ function renderEngine() {
                 piece.className = 'game-piece'; piece.style.backgroundColor = P2_COLOR;
                 cell.appendChild(piece);
             }
+
+            // Append Visual Active Placed Walls (Rendered via non-clickable divs)
+            if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
+                let vHWall = document.createElement('div');
+                vHWall.className = 'visual-wall h-wall';
+                vHWall.style.backgroundColor = hWalls[r][c];
+                vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
+                cell.appendChild(vHWall);
+            }
+            if(c < GRID_SIZE - 1 && vWalls[r][c] !== null) {
+                let vVWall = document.createElement('div');
+                vVWall.className = 'visual-wall v-wall';
+                vVWall.style.backgroundColor = vWalls[r][c];
+                vVWall.style.boxShadow = `0 0 8px ${vWalls[r][c]}`;
+                cell.appendChild(vVWall);
+            }
+
             board.appendChild(cell);
         }
     }
-
-    // Embed Wall Slots with Absolute Respective Dynamic Colors
-    for(let r=0; r<GRID_SIZE; r++) {
-        for(let c=0; c<GRID_SIZE; c++) {
-            let cellDiv = document.getElementById(`cell-${r}-${c}`);
-
-            // Horizontal Triggers
-            if(r < GRID_SIZE - 1) {
-                let triggerH = document.createElement('div');
-                triggerH.className = 'wall-trigger horizontal-type';
-                if(hWalls[r][c] !== null) {
-                    triggerH.classList.add('placed-wall');
-                    triggerH.style.backgroundColor = hWalls[r][c]; 
-                    triggerH.style.boxShadow = `0 0 10px ${hWalls[r][c]}`; 
-                } else {
-                    triggerH.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('h', r, c); };
-                }
-                cellDiv.appendChild(triggerH);
-            }
-
-            // Vertical Triggers
-            if(c < GRID_SIZE - 1) {
-                let triggerV = document.createElement('div');
-                triggerV.className = 'wall-trigger vertical-type';
-                if(vWalls[r][c] !== null) {
-                    triggerV.classList.add('placed-wall');
-                    triggerV.style.backgroundColor = vWalls[r][c]; 
-                    triggerV.style.boxShadow = `0 0 10px ${vWalls[r][c]}`; 
-                } else {
-                    triggerV.onclick = (e) => { e.stopPropagation(); attemptWallPlacement('v', r, c); };
-                }
-                cellDiv.appendChild(triggerV);
-            }
-        }
-    }
     updateHeaderIndicator();
+}
+
+function handleSmartCellTouch(e, r, c) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    // Get absolute exact touch percentages inside this single cell
+    const x = e.clientX - rect.left; 
+    const y = e.clientY - rect.top;
+    
+    const edgeThreshold = rect.width * 0.28; // Kinare ka 28% area reserve for wall
+
+    // Check if user tapped near the bottom boundary (Horizontal Wall intent)
+    if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) {
+        attemptWallPlacement('h', r, c);
+        return;
+    }
+    // Check if user tapped near the right boundary (Vertical Wall intent)
+    if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) {
+        attemptWallPlacement('v', r, c);
+        return;
+    }
+
+    // Default Tapped in Center -> Clearly wants to Move Character Piece!
+    processPieceMovement(r, c);
 }
 
 function updateHeaderIndicator() {
@@ -272,7 +278,6 @@ function isWallBlocking(r1, c1, r2, c2) {
     return false;
 }
 
-// A* SHORTEST PATH MECHANISM WITH JUMP SUPPORT INCLUDED
 function getShortestPathDistance(startPos, targetRow) {
     let visited = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
     let queue = [{r: startPos.r, c: startPos.c, dist: 0}];
@@ -314,7 +319,6 @@ function attemptWallPlacement(type, r, c) {
         vWalls[r][c] = activeColor;
     }
 
-    // ANTI-BLOCKING PROTOCOL
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
@@ -328,9 +332,6 @@ function attemptWallPlacement(type, r, c) {
     evaluateTurnShiftOffline(true);
 }
 
-// =========================================================================
-// 🚀 DYNAMIC PAWN SKIPPING & JUMPING SYSTEM (NO ADJACENT BLOCKING)
-// =========================================================================
 function processPieceMovement(tarR, tarC) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -344,7 +345,7 @@ function processPieceMovement(tarR, tarC) {
     let absDr = Math.abs(dr);
     let absDc = Math.abs(dc);
 
-    // 1. STANDARD STEP (Normal Adjacent Walk)
+    // 1. STANDARD MOVE
     if ((absDr === 1 && dc === 0) || (dr === 0 && absDc === 1)) {
         if (isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED!"); return; }
         if (opp.r === tarR && opp.c === tarC) { triggerGameNotice("⚠️ TAP BEYOND OPPONENT TO JUMP!"); return; }
@@ -354,7 +355,7 @@ function processPieceMovement(tarR, tarC) {
         return;
     }
 
-    // 2. LINEAR JUMP STEP (Skip directly over enemy if aamne-saamne)
+    // 2. LINEAR SKIP JUMP
     if (absDr === 2 && dc === 0) {
         let midR = loc.r + (dr / 2);
         if (opp.r === midR && opp.c === loc.c) {
@@ -374,9 +375,8 @@ function processPieceMovement(tarR, tarC) {
         }
     }
 
-    // 3. DIAGONAL JUMP STEP (Jump left/right if back wall is blocked)
+    // 3. DIAGONAL JUMP
     if (absDr === 1 && absDc === 1) {
-        // Checking if opponent is vertical adjacent
         if (opp.r === tarR && opp.c === loc.c) {
             let behindR = opp.r + (tarR - loc.r);
             if (behindR < 0 || behindR >= GRID_SIZE || isWallBlocking(opp.r, opp.c, behindR, opp.c)) {
@@ -385,7 +385,6 @@ function processPieceMovement(tarR, tarC) {
                 }
             }
         }
-        // Checking if opponent is horizontal adjacent
         if (opp.r === loc.r && opp.c === tarC) {
             let behindC = opp.c + (tarC - loc.c);
             if (behindC < 0 || behindC >= GRID_SIZE || isWallBlocking(opp.r, opp.c, opp.r, behindC)) {
@@ -409,7 +408,6 @@ function finalizeMoveTransmission() {
 function paintBoardOnVictory(winnerColor) {
     document.querySelectorAll('.cell').forEach(cell => {
         cell.style.backgroundColor = winnerColor;
-        cell.style.transition = "background-color 0.25s ease-in-out";
     });
 }
 
@@ -472,9 +470,6 @@ function launchVictorySequence(winner) {
     startCelebrationCanvas();
 }
 
-// =========================================================================
-// 🤖 COMPETITIVE ADVANCED ROBOT ENGINE (A* SHORTEST PATH MECHANISM)
-// =========================================================================
 function executeAdvancedRobotAI() {
     let ai = playerPieces.p2;     
     let human = playerPieces.p1;  
@@ -483,7 +478,6 @@ function executeAdvancedRobotAI() {
     let humanDist = getShortestPathDistance(human, 0);
     let aiDist = getShortestPathDistance(ai, GRID_SIZE - 1);
 
-    // Hardcore Intercept Rule
     if (humanDist <= aiDist && human.r > 0) {
         let blockR = human.r - 1;
         let blockC = human.c;
@@ -498,36 +492,22 @@ function executeAdvancedRobotAI() {
         }
     }
 
-    // Path Tracking Core Strategy
     if (!actionTaken) {
         let bestStep = null;
         let minPathLength = Infinity;
-        let validSteps = [
-            {r: ai.r + 1, c: ai.c}, 
-            {r: ai.r, c: ai.c - 1}, 
-            {r: ai.r, c: ai.c + 1}, 
-            {r: ai.r - 1, c: ai.c}
-        ];
+        let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
 
         for (let step of validSteps) {
             if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
                 if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
                     let d = getShortestPathDistance(step, GRID_SIZE - 1);
-                    if (d < minPathLength) {
-                        minPathLength = d;
-                        bestStep = step;
-                    }
+                    if (d < minPathLength) { minPathLength = d; bestStep = step; }
                 }
             }
         }
-
-        if (bestStep) {
-            playerPieces.p2 = bestStep;
-            actionTaken = true;
-        }
+        if (bestStep) { playerPieces.p2 = bestStep; actionTaken = true; }
     }
 
-    // Secondary Aggressive Strategic Wall Deployment Loop
     if (!actionTaken) {
         for (let tr = 0; tr < 15; tr++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
@@ -544,25 +524,19 @@ function executeAdvancedRobotAI() {
         }
     }
 
-    // Emergency Escape Vector
     if (!actionTaken) {
         let escapes = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
         for (let esc of escapes) {
             if (esc.r >= 0 && esc.r < GRID_SIZE && esc.c >= 0 && esc.c < GRID_SIZE) {
                 if (!isWallBlocking(ai.r, ai.c, esc.r, esc.c) && !(human.r === esc.r && human.c === esc.c)) {
-                    playerPieces.p2 = esc;
-                    break;
+                    playerPieces.p2 = esc; break;
                 }
             }
         }
     }
-
     evaluateTurnShiftOffline(false);
 }
 
-// ==========================================
-// 🎇 CELEBRATION DISPLAYS
-// ==========================================
 function startCelebrationCanvas() {
     const canvas = document.getElementById('firecracker-canvas');
     const ctx = canvas.getContext('2d');
@@ -574,14 +548,9 @@ function startCelebrationCanvas() {
         let pallet = [P1_COLOR, P2_COLOR, '#8edc3a', '#ff9b13'];
         let shardColor = pallet[Math.floor(Math.random() * pallet.length)];
         for(let i=0; i<40; i++) {
-            particles.push({
-                x: sx, y: sy,
-                vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
-                alpha: 1, color: shardColor
-            });
+            particles.push({ x: sx, y: sy, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, alpha: 1, color: shardColor });
         }
     }
-
     firecrackerInterval = setInterval(spawnBurst, 350);
 
     function animate() {
@@ -598,9 +567,7 @@ function startCelebrationCanvas() {
     animate();
 }
 
-function stopCelebrationCanvas() {
-    clearInterval(firecrackerInterval);
-}
+function stopCelebrationCanvas() { clearInterval(firecrackerInterval); }
 
 function shareVictoryTray() {
     const shareTemplate = `🏆 Blockade X matches dominated! Try outwitting my strategic walls: ${window.location.href}`;
