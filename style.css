@@ -1,7 +1,7 @@
 :root {
     --bg-main: #060b13;
     --bg-grid-line: #0f1826;
-    --cell-color: #ffffff; /* Explicit flat white background */
+    --cell-color: #ffffff; /* Smooth clean plain white board cells */
     --text-color: #ffffff;
     
     --pixel-green-top: #8edc3a; --pixel-green-bot: #5da124; --pixel-green-border: #1d3506;
@@ -59,7 +59,7 @@ body {
 .pixel-card { background: #0c1626; border: 4px solid #1c3254; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
 .input-card input { background: #040810; border: 4px solid black; padding: 14px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 100%; box-sizing: border-box; text-align: center; outline: none; }
 
-/* 🚀 ENHANCED PRECISE 9x9 INTERFACE & VISIBLE GOAL POST LINES */
+/* 🚀 GOALPOST BASELINE INDICATORS */
 .pixel-board-wrap {
     background: #080f1a; padding: 15px;
     border: 5px solid #1c3254; box-shadow: 10px 10px 0px black;
@@ -69,28 +69,27 @@ body {
 .game-header { display: flex; width: 100%; max-width: 530px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .score-tag-retro { font-size: 0.7rem; background: #12213a; padding: 6px 12px; border: 2px dashed #00beff; }
 
-/* Highly visible neon baseline labels */
 .goal-line {
-    width: 100%; text-align: center; font-size: 0.5rem; padding: 6px 0;
+    width: 100%; text-align: center; font-size: 0.55rem; padding: 8px 0;
     font-weight: bold; letter-spacing: 1px; border: 2px dashed transparent;
     box-sizing: border-box; margin: 6px 0;
 }
-.goal-line.top-line { background: rgba(255, 82, 82, 0.15); color: #ff5252; border-color: #ff5252; }
-.goal-line.bottom-line { background: rgba(142, 220, 58, 0.15); color: #8edc3a; border-color: #8edc3a; }
+.goal-line.top-line { background: rgba(0, 190, 255, 0.15); color: #00beff; border-color: #00beff; }
+.goal-line.bottom-line { background: rgba(255, 82, 82, 0.15); color: #ff5252; border-color: #ff5252; }
 
-/* Standard structural big grids size */
+/* MATRIX ARENA GRID */
 #game-board { 
     display: grid; 
     grid-template-columns: repeat(9, 55px); 
     grid-template-rows: repeat(9, 55px); 
-    background: #0d1622; /* Dark spacing divider border color lines */
+    background: #0f1826; /* Grid line dividers border */
     gap: 3px; 
     position: relative; 
 }
 .cell { background: var(--cell-color); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .game-piece { width: 44px; height: 44px; border-radius: 50%; z-index: 5; box-shadow: inset -4px -4px 6px rgba(0,0,0,0.4), 0 0 8px rgba(0,0,0,0.3); }
 
-/* WALL STRUCTURE CLOSURES */
+/* WALL SYSTEM TRIGGER OVERLAYS */
 .wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; }
 .wall-trigger.horizontal-type { width: 113px; height: 10px; margin-top: -5px; }
 .wall-trigger.vertical-type { width: 10px; height: 113px; margin-left: -5px; }
@@ -98,11 +97,11 @@ body {
 
 .wall-trigger.placed-wall {
     border-radius: 8px; z-index: 15;
-    box-sizing: border-box; border: 2px solid rgba(0,0,0,0.3);
+    box-sizing: border-box; border: 1px solid rgba(0,0,0,0.4);
     box-shadow: 0 3px 5px rgba(0,0,0,0.5);
 }
 
-/* 📣 STATUS CONTROLLER DISPLAY */
+/* STATUS TURN BANNER PANEL */
 .live-turn-console {
     display: flex; flex-direction: column; align-items: center;
     width: 100%; max-width: 535px; margin-top: 12px; gap: 8px;
@@ -110,7 +109,7 @@ body {
 .turn-highlight-banner {
     width: 100%; text-align: center; padding: 12px;
     font-size: 1.1rem; font-weight: bold; background: #12213a;
-    border: 3px solid #00beff; color: #ffffff; box-shadow: 4px 4px 0px black;
+    border: 3px solid #ff5252; color: #ffffff; box-shadow: 4px 4px 0px black;
 }
 .action-logs-footer { font-size: 0.55rem; text-align: center; color: #7f8fa4; min-height: 15px; }
 
@@ -132,12 +131,6 @@ body {
 #firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 801; }
 .victory-content { z-index: 802; max-width: 440px; border: 5px solid #ff9b13; }
 .victory-title { font-size: 1.4rem; color: #ff9b13; margin: 0 0 15px 0; }
-
-.picker-container { display: flex; gap: 20px; justify-content: center; }
-.color-picker-section h3 { font-size: 0.55rem; margin-bottom: 8px; color: #8edc3a;}
-.color-grid { display: grid; grid-template-columns: repeat(4, 28px); gap: 6px; }
-.color-node { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-.color-node.selected { border-color: white; box-shadow: 0 0 6px white; }
 
 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; }
 .contact-links { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
