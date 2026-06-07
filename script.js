@@ -272,7 +272,7 @@ function isWallBlocking(r1, c1, r2, c2) {
     return false;
 }
 
-// A* CALCULATION SYSTEM FOR BOTH SIDES
+// A* SHORTEST PATH MECHANISM WITH JUMP SUPPORT INCLUDED
 function getShortestPathDistance(startPos, targetRow) {
     let visited = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
     let queue = [{r: startPos.r, c: startPos.c, dist: 0}];
@@ -314,7 +314,7 @@ function attemptWallPlacement(type, r, c) {
         vWalls[r][c] = activeColor;
     }
 
-    // ANTI-BLOCKING SAFE PATH PROTOCOL
+    // ANTI-BLOCKING PROTOCOL
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
@@ -328,26 +328,82 @@ function attemptWallPlacement(type, r, c) {
     evaluateTurnShiftOffline(true);
 }
 
+// =========================================================================
+// 🚀 DYNAMIC PAWN SKIPPING & JUMPING SYSTEM (NO ADJACENT BLOCKING)
+// =========================================================================
 function processPieceMovement(tarR, tarC) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
 
     let loc = playerPieces[activeTurn];
-    if((Math.abs(loc.r - tarR) === 1 && loc.c === tarC) || (loc.r === tarR && Math.abs(loc.c - tarC) === 1)) {
-        if(isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED MOVEMENTS!"); return; }
+    let oppPlayer = (activeTurn === 'p1') ? 'p2' : 'p1';
+    let opp = playerPieces[oppPlayer];
+
+    let dr = tarR - loc.r;
+    let dc = tarC - loc.c;
+    let absDr = Math.abs(dr);
+    let absDc = Math.abs(dc);
+
+    // 1. STANDARD STEP (Normal Adjacent Walk)
+    if ((absDr === 1 && dc === 0) || (dr === 0 && absDc === 1)) {
+        if (isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED!"); return; }
+        if (opp.r === tarR && opp.c === tarC) { triggerGameNotice("⚠️ TAP BEYOND OPPONENT TO JUMP!"); return; }
         
-        let oppPlayer = (activeTurn === 'p1') ? 'p2' : 'p1';
-        if(playerPieces[oppPlayer].r === tarR && playerPieces[oppPlayer].c === tarC) return;
-
         playerPieces[activeTurn] = { r: tarR, c: tarC };
-
-        if(gameMode === 'host' || gameMode === 'client') {
-            networkConnection.send({ type: 'move', player: activeTurn, coordinates: playerPieces[activeTurn] });
-        }
-        evaluateTurnShiftOffline(true);
-    } else {
-        triggerGameNotice("⚠️ INVALID TRACK DIRECTION!");
+        finalizeMoveTransmission();
+        return;
     }
+
+    // 2. LINEAR JUMP STEP (Skip directly over enemy if aamne-saamne)
+    if (absDr === 2 && dc === 0) {
+        let midR = loc.r + (dr / 2);
+        if (opp.r === midR && opp.c === loc.c) {
+            if (isWallBlocking(loc.r, loc.c, midR, loc.c) || isWallBlocking(midR, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKING JUMP!"); return; }
+            playerPieces[activeTurn] = { r: tarR, c: tarC };
+            finalizeMoveTransmission();
+            return;
+        }
+    }
+    if (dr === 0 && absDc === 2) {
+        let midC = loc.c + (dc / 2);
+        if (opp.r === loc.r && opp.c === midC) {
+            if (isWallBlocking(loc.r, loc.c, loc.r, midC) || isWallBlocking(loc.r, midC, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKING JUMP!"); return; }
+            playerPieces[activeTurn] = { r: tarR, c: tarC };
+            finalizeMoveTransmission();
+            return;
+        }
+    }
+
+    // 3. DIAGONAL JUMP STEP (Jump left/right if back wall is blocked)
+    if (absDr === 1 && absDc === 1) {
+        // Checking if opponent is vertical adjacent
+        if (opp.r === tarR && opp.c === loc.c) {
+            let behindR = opp.r + (tarR - loc.r);
+            if (behindR < 0 || behindR >= GRID_SIZE || isWallBlocking(opp.r, opp.c, behindR, opp.c)) {
+                if (!isWallBlocking(loc.r, loc.c, opp.r, opp.c) && !isWallBlocking(opp.r, opp.c, tarR, tarC)) {
+                    playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
+                }
+            }
+        }
+        // Checking if opponent is horizontal adjacent
+        if (opp.r === loc.r && opp.c === tarC) {
+            let behindC = opp.c + (tarC - loc.c);
+            if (behindC < 0 || behindC >= GRID_SIZE || isWallBlocking(opp.r, opp.c, opp.r, behindC)) {
+                if (!isWallBlocking(loc.r, loc.c, opp.r, opp.c) && !isWallBlocking(opp.r, opp.c, tarR, tarC)) {
+                    playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
+                }
+            }
+        }
+    }
+
+    triggerGameNotice("⚠️ INVALID TRACK DIRECTION!");
+}
+
+function finalizeMoveTransmission() {
+    if(gameMode === 'host' || gameMode === 'client') {
+        networkConnection.send({ type: 'move', player: activeTurn, coordinates: playerPieces[activeTurn] });
+    }
+    evaluateTurnShiftOffline(true);
 }
 
 function paintBoardOnVictory(winnerColor) {
@@ -427,7 +483,7 @@ function executeAdvancedRobotAI() {
     let humanDist = getShortestPathDistance(human, 0);
     let aiDist = getShortestPathDistance(ai, GRID_SIZE - 1);
 
-    // Hardcore Intercept Rule: If human is near, drop block wall dynamically!
+    // Hardcore Intercept Rule
     if (humanDist <= aiDist && human.r > 0) {
         let blockR = human.r - 1;
         let blockC = human.c;
@@ -488,7 +544,7 @@ function executeAdvancedRobotAI() {
         }
     }
 
-    // Emergency Deadlock Escape Vector
+    // Emergency Escape Vector
     if (!actionTaken) {
         let escapes = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
         for (let esc of escapes) {
