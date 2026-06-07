@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blockade X - Smart Robot Edition</title>
+    <title>Blockade X - Precision Arena</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -16,7 +16,7 @@
 
     <div id="menu-screen" class="screen active">
         <h1 class="game-title">BLOCKADE X</h1>
-        <p class="game-subtitle">SMART ROBOT TOURNAMENT</p>
+        <p class="game-subtitle">PRECISION ARENA PRO</p>
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="openColorSelection('pass')">PASS & PLAY</button>
@@ -36,12 +36,11 @@
     </div>
 
     <div id="sandbox-host-screen" class="screen">
-        <h2 class="screen-title">ROOM CREATED</h2>
+        <h2 class="screen-title">ROOM HOOKED</h2>
         <div class="pixel-card">
             <p style="font-size: 10px; margin-bottom: 15px;">SHARE 5-LETTER CODE:</p>
             <div id="sandbox-code-display" class="upi-box" style="font-size: 22px; color: #ff9b13; letter-spacing: 4px;">-----</div>
         </div>
-        <p style="font-size: 9px; color: #8edc3a; margin-top: 20px;">Waiting for companion to link...</p>
         <button class="pixel-btn red compact" style="margin-top:20px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
@@ -58,9 +57,9 @@
         <h2 class="screen-title" id="match-status-text">INITIALIZING...</h2>
         <div class="pixel-card">
             <div class="spinning-dice" id="match-loader">⚔️</div>
-            <p id="match-sub-status" style="font-size: 9px; margin-top: 20px; line-height: 1.6; color: #00beff;">SCANNING STREAM FOR ONLINE PLAYERS...</p>
+            <p id="match-sub-status" style="font-size: 9px; margin-top: 20px; color: #00beff;">SCANNING THE STREAM FOR PLAYERS...</p>
         </div>
-        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL SEARCH</button>
+        <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
     <div id="color-screen" class="screen">
@@ -83,30 +82,29 @@
 
     <div id="game-screen" class="screen">
         <div class="game-header">
-            <div class="score-tag-retro">BOARD: 9X9</div>
+            <div class="score-tag-retro">BOARD: 9X9 MATRIX</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
         <div id="board-container" class="pixel-board-wrap">
-            <div id="goal-line-top" class="goal-line"></div>
+            <div id="goal-line-top" class="goal-line top-line">🤖 ROBOT END / P1 START LINE</div>
             <div id="game-board"></div>
-            <div id="goal-line-bottom" class="goal-line"></div>
+            <div id="goal-line-bottom" class="goal-line bottom-line">P1 END / 🤖 ROBOT START LINE</div>
         </div>
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
-            <div id="game-live-notice" class="action-logs-footer">ROBOT IS THINKING AHEAD... BEWARE!</div>
+            <div id="game-live-notice" class="action-logs-footer">CROSS THE VISIBLE BORDER TO CONQUER!</div>
         </div>
     </div>
 
     <div id="victory-screen" class="screen">
         <canvas id="firecracker-canvas"></canvas>
         <div class="victory-content pixel-card">
-            <h1 class="victory-title">CONGRATULATIONS!</h1>
-            <p id="winner-declaration-text" style="font-size: 10px; color: #8edc3a; margin-bottom: 25px; line-height: 1.6;">CHAMPION CAPTURES THE MATRIX</p>
-            
+            <h1 class="victory-title">VICTORY!</h1>
+            <p id="winner-declaration-text" style="font-size: 10px; color: #8edc3a; margin-bottom: 25px;">CHAMPION CAPTURES THE MATRIX</p>
             <div class="victory-actions">
-                <button class="pixel-btn green" onclick="shareVictoryTray()">SHARE VICTORY 🏆</button>
+                <button class="pixel-btn green" onclick="shareVictoryTray()">SHARE WIN🏆</button>
                 <button class="pixel-btn red compact" style="margin-top: 18px;" onclick="confirmExit()">MAIN MENU</button>
             </div>
         </div>
@@ -123,5 +121,6 @@
         </div>
     </div>
 
+    <script src="script.js"></script>
 </body>
 </html>
