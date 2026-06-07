@@ -12,9 +12,6 @@
 
     <div id="game-toast" class="toast-popup hide">⚠️ SYSTEM ACTIVE</div>
 
-    <button id="help-btn" class="pixel-btn orange compact" onclick="toggleModal('help-modal', true)">HELP ?</button>
-
-    <!-- MAIN MENU SCREEN -->
     <div id="menu-screen" class="screen active">
         <h1 class="game-title">BLOCKADE X</h1>
         <p class="game-subtitle">RED VS BLUE : 9X9 ARENA</p>
@@ -25,9 +22,18 @@
             <button class="pixel-btn orange" onclick="startRandomMatchmaking()">ONLINE PVP (RANDOM)</button>
             <button class="pixel-btn red" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
+
+        <div class="retro-footer">
+            <div class="footer-left">
+                <span class="footer-link" onclick="toggleModal('about-modal', true)">ABOUT US</span>
+                <span class="footer-link" onclick="toggleModal('contact-modal', true)">CONTACT US</span>
+            </div>
+            <div class="footer-right">
+                <div class="money-logo-btn" onclick="toggleModal('donation-modal', true)" title="Support Developer">🪙</div>
+            </div>
+        </div>
     </div>
 
-    <!-- SANDBOX MENU -->
     <div id="sandbox-menu-screen" class="screen">
         <h2 class="screen-title">SANDBOX HUBS</h2>
         <div class="menu-buttons">
@@ -37,7 +43,6 @@
         </div>
     </div>
 
-    <!-- SANDBOX HOST -->
     <div id="sandbox-host-screen" class="screen">
         <h2 class="screen-title">ROOM HOOKED</h2>
         <div class="pixel-card">
@@ -47,7 +52,6 @@
         <button class="pixel-btn red compact" style="margin-top:20px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
-    <!-- SANDBOX JOIN -->
     <div id="sandbox-join-screen" class="screen">
         <h2 class="screen-title">JOIN PRIVATE</h2>
         <div class="pixel-card input-card">
@@ -57,7 +61,6 @@
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-menu-screen')">BACK</button>
     </div>
 
-    <!-- MATCHMAKING SCREEN -->
     <div id="matchmaking-screen" class="screen">
         <h2 class="screen-title" id="match-status-text">INITIALIZING...</h2>
         <div class="pixel-card">
@@ -67,7 +70,6 @@
         <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
-    <!-- MAIN GAMEPLAY SCREEN -->
     <div id="game-screen" class="screen">
         <div class="game-header">
             <div class="score-tag-retro">MATRIX: 9X9</div>
@@ -78,35 +80,59 @@
             <div id="game-board"></div>
         </div>
 
-        <!-- LIVE TURN CONSOLE -->
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
             <div id="game-live-notice" class="action-logs-footer">REACH THE GREEN GLOW ROW TO WIN!</div>
         </div>
     </div>
 
-    <!-- VICTORY SCREEN -->
     <div id="victory-screen" class="screen">
         <canvas id="firecracker-canvas"></canvas>
-        <div class="victory-content pixel-card">
-            <h1 class="victory-title">VICTORY!</h1>
-            <p id="winner-declaration-text" style="font-size: 10px; color: #8edc3a; margin-bottom: 25px;">CHAMPION CAPTURES THE MATRIX</p>
+        <div class="victory-content pixel-card" id="victory-card-box">
+            <h1 class="victory-title" id="victory-header-status">VICTORY!</h1>
+            <p id="winner-declaration-text" style="font-size: 11px; color: #8edc3a; margin-bottom: 25px; line-height: 1.6;">CONGRATULATIONS FOR RED PLAYER</p>
             <div class="victory-actions">
-                <button class="pixel-btn green" onclick="shareVictoryTray()">SHARE WIN 🏆</button>
+                <button class="pixel-btn green" onclick="shareVictoryTray()">SHARE RESULTS 🏆</button>
                 <button class="pixel-btn red compact" style="margin-top: 18px;" onclick="confirmExit()">MAIN MENU</button>
             </div>
         </div>
     </div>
 
-    <!-- HELP MODAL -->
-    <div id="help-modal" class="modal-overlay">
+    <div id="about-modal" class="modal-overlay">
         <div class="modal-card pixel-card">
-            <h2>SUPPORT SYS</h2>
+            <h2 style="color: #00beff; font-size: 1.1rem; margin-bottom: 15px;">ABOUT ME</h2>
+            <p style="font-size: 0.65rem; line-height: 1.8; text-align: justify; color: #7f8fa4;">
+                WELCOME TO BLOCKADE X ARENA! I AM A PASSIONATE INDIE GAME DEVELOPER DEDICATED TO CREATING INTELLIGENT RETRO STRATEGY EXPERIENCES. THIS MATRIX ENGINE IS CODED WITH ACCURATE COUPLING LOGIC AND FLUID REAL-TIME NETWORKING PATH SYSTEMS. THANKS FOR PLAYING!
+            </p>
+            <button class="pixel-btn red compact" style="margin-top: 15px;" onclick="toggleModal('about-modal', false)">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="contact-modal" class="modal-overlay">
+        <div class="modal-card pixel-card">
+            <h2 style="color: #8edc3a; font-size: 1.1rem; margin-bottom: 15px;">CONTACT HQS</h2>
             <div class="contact-links">
-                <a href="mailto:riyanshu@example.com" class="contact-item email">EMAIL ARCHIVE</a>
-                <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">INSTAGRAM DEVELOPER</a>
+                <a href="mailto:riyanshu@example.com" class="contact-item email">📩 EMAIL ARCHIVE</a>
+                <a href="https://instagram.com/riyanshu" target="_blank" class="contact-item instagram">📸 INSTAGRAM DEV</a>
             </div>
-            <button class="pixel-btn red compact" onclick="toggleModal('help-modal', false)">CLOSE</button>
+            <button class="pixel-btn red compact" onclick="toggleModal('contact-modal', false)">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="donation-modal" class="modal-overlay">
+        <div class="modal-card pixel-card" style="border-color: #ff9b13;">
+            <h2 style="color: #ff9b13; font-size: 1rem; margin-bottom: 10px;">DONATION BOX</h2>
+            <p style="font-size: 0.6rem; color: #7f8fa4; line-height: 1.6; margin-bottom: 15px;">
+                IF YOU LOVED THE NO-LAG SMOOTH EXPERIENCE, CONSIDER SUPPORTING THE SERVER AND DEV COSTS! EVERY SINGLE COIN HELPS.
+            </p>
+            
+            <div class="qr-code-holder">
+                <img src="qr-placeholder.png" alt="UPI QR CODE" onerror="this.style.display='none';">
+                <div style="font-size: 8px; color: #ff9b13;">[ SCAN UPI QR CODE ]</div>
+            </div>
+
+            <div class="upi-box" id="upi-string-display">UPI ID: riyanshu@upi</div>
+            <button class="pixel-btn red compact" style="margin-top: 5px;" onclick="toggleModal('donation-modal', false)">CLOSE</button>
         </div>
     </div>
 
