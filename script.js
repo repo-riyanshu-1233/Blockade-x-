@@ -1,4 +1,4 @@
-const GRID_SIZE = 6; // RESIZED ENGINE TO 6X6
+const GRID_SIZE = 9; // RESTORED BACK TO ORIGINAL 9X9
 
 const P1_COLOR = '#ff5252'; 
 const P2_COLOR = '#00beff'; 
@@ -7,8 +7,8 @@ let gameMode = 'pass';
 let myRole = 'p1'; 
 let activeTurn = 'p1'; 
 
-// INITIAL POSITIONS FOR 6X6 (P1 at bottom row index 5, P2/Robot at top row index 0)
-let playerPieces = { p1: { r: 5, c: 2 }, p2: { r: 0, c: 3 } };
+// ORIGINAL POSITIONS IN 9X9 (P1 at bottom center, P2/Robot at top center)
+let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
 
 let hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
 let vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
@@ -16,7 +16,7 @@ let vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill
 let peerNode = null;
 let networkConnection = null;
 let firecrackerInterval = null;
-const cloudBrokerPrefix = "BLKD-X6-"; 
+const cloudBrokerPrefix = "BLKD-X9-"; 
 
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -164,11 +164,11 @@ function disconnectPeer() {
 }
 
 // ==========================================
-// 🧱 MATRIX ENGINE GRAPHIC CORE (6X6 ACCURATE)
+// 🧱 MATRIX ENGINE GRAPHIC CORE (9X9 GRID)
 // ==========================================
 function setupFreshMatch() {
     activeTurn = 'p1';
-    playerPieces = { p1: { r: 5, c: 2 }, p2: { r: 0, c: 3 } };
+    playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
     
     hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
     vWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(null));
@@ -181,12 +181,14 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
+    // Create Base Grid Cells for 9x9
     for(let r=0; r<GRID_SIZE; r++) {
         for(let c=0; c<GRID_SIZE; c++) {
             let cell = document.createElement('div');
             cell.className = 'cell';
             cell.id = `cell-${r}-${c}`;
             
+            // Faint green indicator row for winning zones
             if(r === 0 || r === (GRID_SIZE - 1)) {
                 cell.classList.add('goal-glow');
             }
@@ -206,12 +208,14 @@ function renderEngine() {
         }
     }
 
+    // Generate Wall Overlay Nodes onto Specific Relative Spots
     for(let r=0; r<GRID_SIZE-1; r++) {
         for(let c=0; c<GRID_SIZE-1; c++) {
+            // Horizontal Trigger Line
             let triggerH = document.createElement('div');
             triggerH.className = 'wall-trigger horizontal-type';
-            triggerH.style.left = `${c * 59}px`;
-            triggerH.style.top = `${r * 59}px`;
+            triggerH.style.left = `${c * 48}px`;
+            triggerH.style.top = `${r * 48}px`;
             
             if(hWalls[r][c] !== null) {
                 triggerH.classList.add('placed-wall');
@@ -221,10 +225,11 @@ function renderEngine() {
             }
             board.appendChild(triggerH);
 
+            // Vertical Trigger Line
             let triggerV = document.createElement('div');
             triggerV.className = 'wall-trigger vertical-type';
-            triggerV.style.left = `${c * 59}px`;
-            triggerV.style.top = `${r * 59}px`;
+            triggerV.style.left = `${c * 48}px`;
+            triggerV.style.top = `${r * 48}px`;
             
             if(vWalls[r][c] !== null) {
                 triggerV.classList.add('placed-wall');
@@ -297,6 +302,7 @@ function hasValidPath(startPos, targetRow) {
     return getShortestPathDistance(startPos, targetRow) !== Infinity;
 }
 
+// 🎯 INSTANT REGISTER WALL FUNCTION WITH FIXED INDEXES
 function attemptWallPlacement(type, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -379,15 +385,15 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
 }
 
 // ========================================================
-// 🤖 6X6 CONFIGURED NO-FREEZE SMART AI ROBOT
+// 🤖 9X9 CALIBRATED RE-ENGINEERED SMART ROBOT (NO STUCK)
 // ========================================================
 function executeAiStrategy() {
     let ai = playerPieces.p2;     
     let human = playerPieces.p1;  
     let actionTaken = false;
 
-    // RULE 1: SMART TRAP BLOCKING (No endless loops)
-    if (human.r <= 3 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.50) {
+    // RULE 1: SMART WALL TRAP
+    if (human.r <= 5 && Math.abs(ai.r - human.r) > 1 && Math.random() < 0.45) {
         let blockRow = Math.max(0, human.r - 1); 
         let blockCol = Math.min(human.c, GRID_SIZE - 2);
 
@@ -402,7 +408,7 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 2: ROBUST PATHFINDING MOVE (Target Row = 5)
+    // RULE 2: A* OPTIMAL PATHFINDING TO BOTTOM ROW 8
     if (!actionTaken) {
         let bestMove = null;
         let minDistance = Infinity;
@@ -431,9 +437,9 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 3: SAFE FALLBACK (Maximum 8 fast checks to prevent freezing)
+    // RULE 3: SAFE FINITE WALL DEPLOYMENT (Max 6 tries to keep it fluid)
     if (!actionTaken) {
-        for (let attempt = 0; attempt < 8; attempt++) {
+        for (let attempt = 0; attempt < 6; attempt++) {
             let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
             let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
             if (vWalls[rr][rc] === null) {
@@ -447,7 +453,7 @@ function executeAiStrategy() {
         }
     }
 
-    // RULE 4: ABSOLUTE EMERGENCY STEP (If everything else is blocked, just make a legal move)
+    // RULE 4: GUARANTEED ESCAPE STEP (Absolutely no locks or frozen states)
     if (!actionTaken) {
         let fallbackMoves = [
             {r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}
