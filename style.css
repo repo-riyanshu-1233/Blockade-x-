@@ -56,7 +56,7 @@ body {
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
-/* FIXED 9X9 GRID INTERSECTIONS */
+/* FIXED 9X9 MATRIX CELLS */
 #game-board { 
     display: grid; 
     grid-template-columns: repeat(9, 44px); 
@@ -69,20 +69,20 @@ body {
 .cell.goal-glow { background-color: rgba(142, 220, 58, 0.25) !important; box-shadow: inset 0 0 8px rgba(142, 220, 58, 0.6); }
 .game-piece { width: 34px; height: 34px; border-radius: 50%; z-index: 5; box-shadow: inset -3px -3px 5px rgba(0,0,0,0.4), 0 0 6px rgba(0,0,0,0.3); }
 
-/* REMAPPED PRECISE SINGLE WALL CHANNELS */
+/* SINGLE EDGE WALL COUPLING SYSTEM */
 .wall-trigger { position: absolute; background: transparent; cursor: pointer; z-index: 10; }
 .wall-trigger.horizontal-type { width: 44px; height: 12px; margin-top: 38px; }
 .wall-trigger.vertical-type { width: 12px; height: 44px; margin-left: 38px; }
 .wall-trigger:hover { background: rgba(0, 190, 255, 0.5) !important; }
 
+/* THE DYNAMIC PLAYER PLACED WALL PROPERTIES (NO WHITE FORCING) */
 .wall-trigger.placed-wall {
     z-index: 15;
-    background: #ffffff !important;
-    box-shadow: 0 0 6px rgba(255,255,255,0.8);
     pointer-events: none;
+    border: 1px solid rgba(0, 0, 0, 0.4);
 }
 
-/* RETRO BOTTOM MAIN MENU ONLY FOOTER */
+/* RETRO MAIN MENU FOOTER NAVIGATION */
 .retro-footer {
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; max-width: 360px; margin-top: 40px; padding: 12px 5px;
