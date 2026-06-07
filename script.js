@@ -301,6 +301,7 @@ function hasValidPath(startPos, targetRow) {
     return getShortestPathDistance(startPos, targetRow) !== Infinity;
 }
 
+// FIXED: Wall tap triggers immediate visual apply and instantly switches the turn!
 function attemptWallPlacement(type, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -328,6 +329,8 @@ function attemptWallPlacement(type, r, c) {
     if(gameMode === 'host' || gameMode === 'client') {
         networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
     }
+    
+    // INSTANT TURN SHIFT: No extra move required!
     evaluateTurnShiftOffline(true);
 }
 
@@ -351,7 +354,6 @@ function processPieceMovement(tarR, tarC) {
     }
 }
 
-// NEW FLAGGED LOGIC: Converts all board grid boxes to winner's theme colors dynamically
 function paintBoardOnVictory(winnerColor) {
     document.querySelectorAll('.cell').forEach(cell => {
         cell.style.backgroundColor = winnerColor;
@@ -362,14 +364,12 @@ function paintBoardOnVictory(winnerColor) {
 function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     renderEngine();
     
-    // CONDITION FIXED: If Red Player step on Row 0 (Blue's starting line boxes) -> WIN!
     if(playerPieces.p1.r === 0) {
         paintBoardOnVictory(P1_COLOR);
         setTimeout(() => { launchVictorySequence("🔴 RED PLAYER 1"); }, 500);
         return;
     }
     
-    // CONDITION FIXED: If Blue Robot/Player 2 step on Row 8 (Red's starting line boxes) -> WIN!
     if(playerPieces.p2.r === 8) {
         paintBoardOnVictory(P2_COLOR);
         setTimeout(() => { launchVictorySequence("🔵 SMART BLUE ROBOT"); }, 500);
