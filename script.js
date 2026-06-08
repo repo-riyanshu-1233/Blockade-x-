@@ -187,6 +187,7 @@ function renderEngine() {
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
             
+            // Absolute board coordinate inversion rules
             let r = (myRole === 'p2') ? (GRID_SIZE - 1 - displayR) : displayR;
             let c = (myRole === 'p2') ? (GRID_SIZE - 1 - displayC) : displayC;
 
@@ -202,7 +203,7 @@ function renderEngine() {
                 if (r === 0) cell.classList.add('start-row-glow'); 
             }
 
-            cell.onclick = (event) => handleSmartCellTouch(event, r, c);
+            cell.onclick = (event) => handleSmartCellTouch(event, r, r, c);
 
             if(playerPieces.p1.r === r && playerPieces.p1.c === c) {
                 let piece = document.createElement('div');
@@ -214,6 +215,7 @@ function renderEngine() {
                 cell.appendChild(piece);
             }
 
+            // Clean data render sync. No offset indexing inside loops.
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
                 let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
                 vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
@@ -230,47 +232,49 @@ function renderEngine() {
     updateHeaderIndicator();
 }
 
-// 🎯 COMPLETE RELIABLE FIX FOR SYNC AND MISSTAP PARSING
-function handleSmartCellTouch(e, r, c) {
+// 🎯 FIXED PERSPECTIVE SYNC & PREVENT GHOST MISSTAPS
+function handleSmartCellTouch(e, absoluteR, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; 
     const y = e.clientY - rect.top;
-    const edgeThreshold = rect.width * 0.32; // Expanded target threshold bounds
+    const edgeThreshold = rect.width * 0.32; 
+
+    let wallPlacedStatus = false;
 
     if (myRole === 'p2') {
-        // P2 inverted space wall mapping logic
+        // Absolute index re-balancing logic for P2 screen flips
         if (y < edgeThreshold) { 
-            if(r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; } // Top boundary touch
+            if(r < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('h', r, c); if(wallPlacedStatus) return; } 
         }
         if (y > (rect.height - edgeThreshold)) { 
-            if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } // Bottom boundary touch
+            if(r > 0) { wallPlacedStatus = attemptWallPlacement('h', r - 1, c); if(wallPlacedStatus) return; } 
         }
         if (x < edgeThreshold) { 
-            if(c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; } // Left boundary touch
+            if(c < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('v', r, c); if(wallPlacedStatus) return; } 
         }
         if (x > (rect.width - edgeThreshold)) { 
-            if(c > 0) { attemptWallPlacement('v', r, c - 1); return; } // Right boundary touch
+            if(c > 0) { wallPlacedStatus = attemptWallPlacement('v', r, c - 1); if(wallPlacedStatus) return; } 
         }
     } else {
-        // P1 normal absolute grid wall mapping logic 
+        // Standard P1 perspective wall conversion bounds
         if (y < edgeThreshold) { 
-            if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } 
+            if(r > 0) { wallPlacedStatus = attemptWallPlacement('h', r - 1, c); if(wallPlacedStatus) return; } 
         }
         if (y > (rect.height - edgeThreshold)) { 
-            if(r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; } 
+            if(r < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('h', r, c); if(wallPlacedStatus) return; } 
         }
         if (x < edgeThreshold) { 
-            if(c > 0) { attemptWallPlacement('v', r, c - 1); return; } 
+            if(c > 0) { wallPlacedStatus = attemptWallPlacement('v', r, c - 1); if(wallPlacedStatus) return; } 
         }
         if (x > (rect.width - edgeThreshold)) { 
-            if(c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; } 
+            if(c < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('v', r, c); if(wallPlacedStatus) return; } 
         }
     }
 
-    // Runs ONLY if touch did not hit any wall margins. Prevents Misstaps.
+    // Process token move only if wall didn't trigger! Completely stops Misstaps.
     processPieceMovement(r, c);
 }
 
@@ -331,18 +335,21 @@ function hasValidPath(startPos, targetRow) { return getShortestPathDistance(star
 
 function attemptWallPlacement(type, r, c) {
     let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
-    if(type === 'h') { if(hWalls[r][c] !== null) return; hWalls[r][c] = activeColor; } 
-    else { if(vWalls[r][c] !== null) return; vWalls[r][c] = activeColor; }
+    
+    // Double validation check before rendering to avoid out-of-sync overlap
+    if(type === 'h') { if(hWalls[r][c] !== null) return false; hWalls[r][c] = activeColor; } 
+    else { if(vWalls[r][c] !== null) return false; vWalls[r][c] = activeColor; }
 
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
-        triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!"); return;
+        triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!"); return false;
     }
 
     if(gameMode === 'host' || gameMode === 'client') {
         networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
     }
     evaluateTurnShiftOffline(true);
+    return true;
 }
 
 function processPieceMovement(tarR, tarC) {
