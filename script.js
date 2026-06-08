@@ -13,11 +13,8 @@ let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
-// ⏱️ TIMER SYSTEM VARIABLES
 let turnTimer = null;
 let timeLeft = 30;
-
-// 🛠️ WALL CONFIRMATION MEMORY
 let pendingWall = null; 
 
 let peerNode = null;
@@ -29,7 +26,7 @@ function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     if(screenId !== 'victory-screen') stopCelebrationCanvas();
-    if(screenId !== 'game-screen') clearInterval(turnTimer); // Stop timer if out of game
+    if(screenId !== 'game-screen') clearInterval(turnTimer); 
 }
 
 function toggleModal(modalId, isOpen) {
@@ -171,7 +168,6 @@ function setupFreshMatch() {
     renderEngine();
 }
 
-// ⏱️ TIMER MANAGEMENT ENGINE
 function resetTurnTimer() {
     clearInterval(turnTimer);
     timeLeft = 30;
@@ -184,7 +180,7 @@ function resetTurnTimer() {
         if(timeLeft <= 0) {
             clearInterval(turnTimer);
             triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
-            cancelWallPlacement(); // Reset any unconfirmed walls on timeout
+            cancelWallPlacement(); 
             evaluateTurnShiftOffline(true);
         }
     }, 1000);
@@ -192,6 +188,7 @@ function resetTurnTimer() {
 
 function renderEngine() {
     const board = document.getElementById('game-board');
+    if (!board) return; // Prevent crash if element hasn't loaded
     board.innerHTML = '';
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
@@ -223,7 +220,6 @@ function renderEngine() {
                 cell.appendChild(piece);
             }
 
-            // Render Established Walls
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
                 let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
                 vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
@@ -237,7 +233,6 @@ function renderEngine() {
                 cell.appendChild(vVWall);
             }
 
-            // 🛠️ Render Preview of Pending Wall (Semi-transparent)
             if(pendingWall && pendingWall.r === r && pendingWall.c === c) {
                 let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
                 if(pendingWall.type === 'h' && r < GRID_SIZE - 1) {
@@ -262,7 +257,7 @@ function renderEngine() {
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
-    if(pendingWall) return; // Freeze actions until confirmation panel is resolved
+    if(pendingWall) return; 
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
@@ -283,15 +278,13 @@ function handleSmartCellTouch(e, r, c) {
     processPieceMovement(r, c);
 }
 
-// 🛠️ WALL PREVIEW & CONFIRMATION SWITCH LOGIC
 function triggerWallPreview(type, r, c) {
     if(type === 'h' && hWalls[r][c] !== null) return;
     if(type === 'v' && vWalls[r][c] !== null) return;
 
     pendingWall = { type: type, r: r, c: c };
-    renderEngine(); // Refresh board to display preview
+    renderEngine(); 
 
-    // Toggle UI banners to confirmation view
     document.getElementById('bottom-turn-banner').classList.add('hide');
     document.getElementById('wall-confirm-panel').classList.remove('hide');
 }
@@ -299,18 +292,14 @@ function triggerWallPreview(type, r, c) {
 function commitWallPlacement() {
     if(!pendingWall) return;
     let type = pendingWall.type; let r = pendingWall.r; let c = pendingWall.c;
-    pendingWall = null; // Clear staging area
+    pendingWall = null; 
 
-    // Restore standard banners
     document.getElementById('wall-confirm-panel').classList.add('hide');
     document.getElementById('bottom-turn-banner').classList.remove('hide');
 
     let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
-    
-    if(type === 'h') hWalls[r][c] = activeColor; 
-    else vWalls[r][c] = activeColor;
+    if(type === 'h') hWalls[r][c] = activeColor; else vWalls[r][c] = activeColor;
 
-    // Check if path is legally open
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
@@ -334,6 +323,7 @@ function cancelWallPlacement() {
 function updateHeaderIndicator() {
     const bottomBanner = document.getElementById('bottom-turn-banner');
     const identityTag = document.getElementById('identity-tag');
+    if (!bottomBanner) return;
 
     if(gameMode === 'pass') { identityTag.innerText = "PASS & PLAY"; } 
     else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
@@ -432,7 +422,7 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     if(playerPieces.p2.r === GRID_SIZE - 1) { clearInterval(turnTimer); paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("p2"); }, 400); return; }
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
-    resetTurnTimer(); // Reset countdown clock for the next player
+    resetTurnTimer(); 
     
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
@@ -510,6 +500,7 @@ function execute4LevelEngineAI() {
 function startCelebrationCanvas() {
     stopCelebrationCanvas();
     const canvas = document.getElementById('firecracker-canvas'); const ctx = canvas.getContext('2d');
+    if (!canvas) return;
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     let particles = [];
     function spawnBurst() {
