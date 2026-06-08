@@ -30,7 +30,7 @@ body {
     width: 100%; max-width: 600px;
     padding: 15px; box-sizing: border-box;
 }
-.screen.active { display: flex !important; } /* Force active visibility */
+.screen.active { display: flex !important; } 
 .screen.large-layout { max-width: 100vw; }
 
 .game-title { font-size: 2.2rem; text-align: center; margin: 0; color: #00beff; text-shadow: 4px 4px 0px #002d54; }
@@ -58,7 +58,6 @@ body {
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
-/* 🕹️ STABLE ARROWS AND GRID SIZING FOR THE WRAPPER */
 .pixel-board-wrap { 
     background: #080f1a; padding: 10px; border: 4px solid #1c3254; 
     box-shadow: 6px 6px 0px black; position: relative; margin: 10px auto; 
@@ -97,14 +96,6 @@ body {
     font-size: 0.65rem; background: #000000; padding: 6px 12px;
     border: 2px solid #ff9b13; color: #ff9b13; text-shadow: 1px 1px 0px black;
 }
-
-.confirm-panel-wrap {
-    width: 100%; background: #0c1626; border: 3px solid #ff9b13;
-    padding: 12px; box-sizing: border-box; text-align: center;
-    box-shadow: 4px 4px 0px black;
-}
-.confirm-text { font-size: 0.65rem; color: #ff9b13; margin: 0 0 10px 0; }
-.confirm-actions { display: flex; justify-content: center; gap: 15px; }
 
 .hide { display: none !important; }
 
