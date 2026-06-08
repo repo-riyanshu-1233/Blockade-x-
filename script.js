@@ -180,7 +180,6 @@ function setupFreshMatch() {
     renderEngine();
 }
 
-// 🔄 RENDER ENGINE (FIXED DUAL HIGHLIGHT & REMOVED BOTTOM)
 function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
@@ -195,13 +194,12 @@ function renderEngine() {
             cell.className = 'cell';
             cell.id = `cell-${r}-${c}`;
             
-            // 🎯 INVERTED GLOW ENGINE (Aapki screen par hamesha goal row upar green dikhegi, base row niche orange)
             if (myRole === 'p1') {
-                if (r === 0) cell.classList.add('goal-row-glow'); // Target line (Top)
-                if (r === 8) cell.classList.add('start-row-glow'); // Starting line (Bottom)
+                if (r === 0) cell.classList.add('goal-row-glow'); 
+                if (r === 8) cell.classList.add('start-row-glow'); 
             } else if (myRole === 'p2') {
-                if (r === 8) cell.classList.add('goal-row-glow'); // Target line (Looks top to player 2)
-                if (r === 0) cell.classList.add('start-row-glow'); // Starting line (Looks bottom to player 2)
+                if (r === 8) cell.classList.add('goal-row-glow'); 
+                if (r === 0) cell.classList.add('start-row-glow'); 
             }
 
             cell.onclick = (event) => handleSmartCellTouch(event, r, c);
@@ -232,6 +230,7 @@ function renderEngine() {
     updateHeaderIndicator();
 }
 
+// 🎯 FIXED WALL MISMATCH (COMPLETELY OVERHAULED TOUCH LOGIC FOR ROTATION SENSE)
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -242,17 +241,38 @@ function handleSmartCellTouch(e, r, c) {
     const edgeThreshold = rect.width * 0.28; 
 
     if (myRole === 'p2') {
-        if (y < edgeThreshold && r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; }
-        if (x < edgeThreshold && c > 0) { attemptWallPlacement('v', r, c - 1); return; }
+        // Flipped orientation parsing for P2
+        if (y < edgeThreshold) { 
+            if(r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; } 
+        }
+        if (y > (rect.height - edgeThreshold)) { 
+            if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } 
+        }
+        if (x < edgeThreshold) { 
+            if(c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; } 
+        }
+        if (x > (rect.width - edgeThreshold)) { 
+            if(c > 0) { attemptWallPlacement('v', r, c - 1); return; } 
+        }
     } else {
-        if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; }
-        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; }
+        // Standard absolute parsing for P1
+        if (y < edgeThreshold) { 
+            if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } 
+        }
+        if (y > (rect.height - edgeThreshold)) { 
+            if(r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; } 
+        }
+        if (x < edgeThreshold) { 
+            if(c > 0) { attemptWallPlacement('v', r, c - 1); return; } 
+        }
+        if (x > (rect.width - edgeThreshold)) { 
+            if(c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; } 
+        }
     }
 
     processPieceMovement(r, c);
 }
 
-// 🛑 REMOVED "BOTTOM" WORD FROM LABELS
 function updateHeaderIndicator() {
     const bottomBanner = document.getElementById('bottom-turn-banner');
     const identityTag = document.getElementById('identity-tag');
@@ -366,32 +386,50 @@ function paintBoardOnVictory(winnerColor) {
 
 function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     renderEngine();
-    if(playerPieces.p1.r === 0) { paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("red"); }, 400); return; }
-    if(playerPieces.p2.r === GRID_SIZE - 1) { paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("blue"); }, 400); return; }
+    if(playerPieces.p1.r === 0) { paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("p1"); }, 400); return; }
+    if(playerPieces.p2.r === GRID_SIZE - 1) { paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("p2"); }, 400); return; }
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
     updateHeaderIndicator();
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
 
-function launchVictorySequence(winner) {
+// 🏆 DYNAMIC WIN/LOSS HUD GENERATOR (FIXED FOR ALL MODES)
+function launchVictorySequence(winningRole) {
     const titleHeader = document.getElementById('victory-header-status');
     const subtitleText = document.getElementById('winner-declaration-text');
+    const shareBtn = document.getElementById('share-results-btn');
+    const cardBox = document.getElementById('victory-card-box');
 
-    if (gameMode === 'ai') {
-        if (winner === 'red') {
-            titleHeader.innerText = "VICTORY!"; titleHeader.style.color = "#8edc3a";
-            subtitleText.innerText = "YOU DEFEATED THE SYSTEM BOT!"; subtitleText.style.color = "#8edc3a";
-        } else {
-            titleHeader.innerText = "DEFEAT!"; titleHeader.style.color = "#ff5252";
-            subtitleText.innerText = "BOT WON! BETTER LUCK NEXT TIME"; subtitleText.style.color = "#ff5252";
-        }
-    } else {
+    let localPlayerWon = (gameMode === 'pass') || (gameMode === 'ai' && winningRole === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && myRole === winningRole);
+
+    if (localPlayerWon) {
+        // Local Device Wins
         titleHeader.innerText = "VICTORY!";
-        if(winner === 'red') { titleHeader.style.color = P1_COLOR; subtitleText.innerText = "CONGRATULATIONS RED PLAYER!"; subtitleText.style.color = P1_COLOR; }
-        else { titleHeader.style.color = P2_COLOR; subtitleText.innerText = "CONGRATULATIONS BLUE PLAYER!"; subtitleText.style.color = P2_COLOR; }
+        titleHeader.style.color = "#8edc3a";
+        cardBox.style.borderColor = "#8edc3a";
+        shareBtn.style.display = "inline-block";
+        
+        if (gameMode === 'pass') {
+            subtitleText.innerText = winningRole === 'p1' ? "CONGRATULATIONS RED PLAYER! YOU WON!" : "CONGRATULATIONS BLUE PLAYER! YOU WON!";
+        } else {
+            subtitleText.innerText = "CONGRATULATIONS! YOU DEFEATED YOUR OPPONENT!";
+        }
+        subtitleText.style.color = "#8edc3a";
+        showScreen('victory-screen'); 
+        startCelebrationCanvas(); // Firecrackers for winner
+    } else {
+        // Local Device Loses
+        titleHeader.innerText = "DEFEAT!";
+        titleHeader.style.color = "#ff5252";
+        cardBox.style.borderColor = "#ff5252";
+        shareBtn.style.display = "none"; // Hide share on loss
+        
+        subtitleText.innerText = "LOSE! BETTER LUCK NEXT TIME";
+        subtitleText.style.color = "#ff5252";
+        showScreen('victory-screen');
+        stopCelebrationCanvas(); // No firecrackers for loser
     }
-    showScreen('victory-screen'); startCelebrationCanvas();
 }
 
 function execute4LevelEngineAI() {
@@ -446,6 +484,7 @@ function execute4LevelEngineAI() {
 }
 
 function startCelebrationCanvas() {
+    stopCelebrationCanvas();
     const canvas = document.getElementById('firecracker-canvas'); const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     let particles = [];
