@@ -4,11 +4,10 @@ const P1_COLOR = '#ff5252'; // Player 1 (Red)
 const P2_COLOR = '#00beff'; // Player 2 / AI (Blue)
 
 let gameMode = 'pass'; 
-let myRole = 'p1';       // Online matches me dynamically decide hoga: 'p1' (Bottom) ya 'p2' (Top)
+let myRole = 'p1';       // 'p1' (Absolute Red) ya 'p2' (Absolute Blue)
 let activeTurn = 'p1'; 
-let aiDifficulty = 'medium'; // easy, medium, hard, extreme
+let aiDifficulty = 'medium'; 
 
-// Base Matrix Coordinates (Hamesha Red: row 8 aur Blue: row 0 se suru hota hai)
 let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
 
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -44,14 +43,14 @@ function triggerGameNotice(msg, isPositive = false) {
 
 function launchDirectGame(mode) {
     gameMode = mode;
-    myRole = 'p1'; // Single-screen rules
+    myRole = 'p1'; 
     setupFreshMatch();
 }
 
 function launchAIGame(diff) {
     gameMode = 'ai';
     aiDifficulty = diff;
-    myRole = 'p1'; // Human is Bottom (Red)
+    myRole = 'p1'; 
     setupFreshMatch();
 }
 
@@ -62,7 +61,6 @@ function generate5BitCode() {
     return text;
 }
 
-// NETWORK ENGINE WITH POOL & ROLE EXCHANGE FIXES
 function initiateSandboxHost() {
     gameMode = 'host'; myRole = 'p1'; 
     showScreen('sandbox-host-screen');
@@ -75,7 +73,6 @@ function initiateSandboxHost() {
         setupNetworkListeners();
         triggerGameNotice("SANDBOX LINKED SUCCESS!", true);
         setTimeout(() => { 
-            // Host random role assign karke transmit karega
             myRole = Math.random() > 0.5 ? 'p1' : 'p2';
             networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1') });
             setupFreshMatch(); 
@@ -174,7 +171,6 @@ function disconnectPeer() {
     showScreen('menu-screen');
 }
 
-// AUTOMATIC SCREEN MIRRORING & ASPECT ENGINE
 function setupFreshMatch() {
     activeTurn = 'p1';
     playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
@@ -184,16 +180,14 @@ function setupFreshMatch() {
     renderEngine();
 }
 
+// 🔄 RENDER ENGINE (FIXED DUAL HIGHLIGHT & REMOVED BOTTOM)
 function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
-    // MIRROR TRANSFORMATION LOGIC
-    // Agar local player Blue ('p2') h, toh board ko virtual inverted loop me render karo
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
             
-            // Convert Screen Loop values into Absolute Logic indices based on Perspective
             let r = (myRole === 'p2') ? (GRID_SIZE - 1 - displayR) : displayR;
             let c = (myRole === 'p2') ? (GRID_SIZE - 1 - displayC) : displayC;
 
@@ -201,15 +195,17 @@ function renderEngine() {
             cell.className = 'cell';
             cell.id = `cell-${r}-${c}`;
             
-            // Goal line visual highlighter based on role perspective
-            if((myRole === 'p1' && r === 0) || (myRole === 'p2' && r === 8)) {
-                cell.classList.add('goal-glow'); 
+            // 🎯 INVERTED GLOW ENGINE (Aapki screen par hamesha goal row upar green dikhegi, base row niche orange)
+            if (myRole === 'p1') {
+                if (r === 0) cell.classList.add('goal-row-glow'); // Target line (Top)
+                if (r === 8) cell.classList.add('start-row-glow'); // Starting line (Bottom)
+            } else if (myRole === 'p2') {
+                if (r === 8) cell.classList.add('goal-row-glow'); // Target line (Looks top to player 2)
+                if (r === 0) cell.classList.add('start-row-glow'); // Starting line (Looks bottom to player 2)
             }
 
-            // Click capture pass back to matrix indices
             cell.onclick = (event) => handleSmartCellTouch(event, r, c);
 
-            // Pieces allocation
             if(playerPieces.p1.r === r && playerPieces.p1.c === c) {
                 let piece = document.createElement('div');
                 piece.className = 'game-piece'; piece.style.backgroundColor = P1_COLOR;
@@ -220,13 +216,11 @@ function renderEngine() {
                 cell.appendChild(piece);
             }
 
-            // Horizonal wall tracking
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
                 let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
                 vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
                 cell.appendChild(vHWall);
             }
-            // Vertical wall tracking
             if(c < GRID_SIZE - 1 && vWalls[r][c] !== null) {
                 let vVWall = document.createElement('div'); vVWall.className = 'visual-wall v-wall';
                 vVWall.style.backgroundColor = vWalls[r][c]; vVWall.style.boxShadow = `0 0 8px ${vWalls[r][c]}`;
@@ -247,7 +241,6 @@ function handleSmartCellTouch(e, r, c) {
     const y = e.clientY - rect.top;
     const edgeThreshold = rect.width * 0.28; 
 
-    // Mirroring dynamic direction checks for wall clicks
     if (myRole === 'p2') {
         if (y < edgeThreshold && r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; }
         if (x < edgeThreshold && c > 0) { attemptWallPlacement('v', r, c - 1); return; }
@@ -259,16 +252,15 @@ function handleSmartCellTouch(e, r, c) {
     processPieceMovement(r, c);
 }
 
+// 🛑 REMOVED "BOTTOM" WORD FROM LABELS
 function updateHeaderIndicator() {
     const bottomBanner = document.getElementById('bottom-turn-banner');
     const identityTag = document.getElementById('identity-tag');
 
-    // Role tags setup
     if(gameMode === 'pass') { identityTag.innerText = "PASS & PLAY"; } 
     else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
-    else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED (BOTTOM)" : "🔵 YOU: BLUE (BOTTOM)"; }
+    else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED" : "🔵 YOU: BLUE"; }
 
-    // Active turns animations logic
     let isMyTurn = (gameMode === 'pass') || (gameMode === 'ai' && activeTurn === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && activeTurn === myRole);
     
     if(isMyTurn) {
@@ -385,7 +377,6 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
 function launchVictorySequence(winner) {
     const titleHeader = document.getElementById('victory-header-status');
     const subtitleText = document.getElementById('winner-declaration-text');
-    const cardBox = document.getElementById('victory-card-box');
 
     if (gameMode === 'ai') {
         if (winner === 'red') {
@@ -403,19 +394,16 @@ function launchVictorySequence(winner) {
     showScreen('victory-screen'); startCelebrationCanvas();
 }
 
-// 🤖 DYNAMIC 4-LEVEL DIFFICULTY BOT ENGINE
 function execute4LevelEngineAI() {
     let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
-    // Phase 1: Difficulty Based Probability Setup
     let blockProbability = 0;
     if (aiDifficulty === 'easy') blockProbability = 0.05;
     else if (aiDifficulty === 'medium') blockProbability = 0.40;
     else if (aiDifficulty === 'hard') blockProbability = 0.75;
     else if (aiDifficulty === 'extreme') blockProbability = 0.95;
 
-    // AI Attempts Interception/Blocking (Smarter on Hard & Extreme)
     if (Math.random() < blockProbability && human.r > 1) {
         let blockR = human.r - 1; let blockC = human.c;
         if (hWalls[blockR][blockC] === null) {
@@ -426,15 +414,12 @@ function execute4LevelEngineAI() {
         }
     }
 
-    // Phase 2: Path Finding Steps
     if (!actionTaken) {
         let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
         
-        // Randomize moves for Easy Mode to reduce its IQ
         if(aiDifficulty === 'easy') {
             validSteps.sort(() => Math.random() - 0.5);
         } else {
-            // Sort by shortest paths to goal row (9) for smarter modes
             validSteps.sort((a, b) => {
                 let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
                 let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
@@ -451,7 +436,6 @@ function execute4LevelEngineAI() {
         }
     }
 
-    // Fallback Random Wall Placer
     if (!actionTaken) {
         let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
         if (hWalls[rr][rc] === null) hWalls[rr][rc] = P2_COLOR;
