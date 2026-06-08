@@ -146,6 +146,11 @@ function setupNetworkListeners() {
             if(data.wallType === 'h') hWalls[data.r][data.c] = data.color;
             else vWalls[data.r][data.c] = data.color;
             evaluateTurnShiftOffline(false);
+        } else if(data.type === 'timeout') {
+            // ⏱️ Synchronized execution when opponent times out
+            triggerGameNotice("⚠️ OPPONENT TIMED OUT! YOUR TURN");
+            cancelWallPlacement();
+            evaluateTurnShiftOffline(false);
         }
     });
     networkConnection.on('close', () => {
@@ -158,7 +163,7 @@ function disconnectPeer() {
 }
 
 function setupFreshMatch() {
-    activeTurn = 'p1';
+    activeTurn = 'p1'; // Game ALWAYS starts with p1 (Red)
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -179,16 +184,26 @@ function resetTurnTimer() {
         
         if(timeLeft <= 0) {
             clearInterval(turnTimer);
-            triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
             cancelWallPlacement(); 
-            evaluateTurnShiftOffline(true);
+            
+            // If it's my turn and I timeout, notify the other player over network
+            let isOnlineMatch = (gameMode === 'host' || gameMode === 'client');
+            if(isOnlineMatch && activeTurn === myRole) {
+                networkConnection.send({ type: 'timeout' });
+                triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
+                evaluateTurnShiftOffline(true);
+            } else if (!isOnlineMatch) {
+                // Pass & Play or AI timeout fallback
+                triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
+                evaluateTurnShiftOffline(true);
+            }
         }
     }, 1000);
 }
 
 function renderEngine() {
     const board = document.getElementById('game-board');
-    if (!board) return; // Prevent crash if element hasn't loaded
+    if (!board) return; 
     board.innerHTML = '';
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
@@ -272,7 +287,7 @@ function handleSmartCellTouch(e, r, c) {
         if (y < edgeThreshold && r > 0) { triggerWallPreview('h', r - 1, c); return; }
         if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
         if (x < edgeThreshold && c > 0) { triggerWallPreview('v', r, c - 1); return; }
-        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c); return; }
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c - 1); return; }
     }
 
     processPieceMovement(r, c);
@@ -329,6 +344,7 @@ function updateHeaderIndicator() {
     else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
     else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED" : "🔵 YOU: BLUE"; }
 
+    // 🔒 FIXED EXPLICIT TURN CHECK: No more flip-flops
     let isMyTurn = (gameMode === 'pass') || (gameMode === 'ai' && activeTurn === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && activeTurn === myRole);
     
     if(isMyTurn) {
@@ -342,7 +358,11 @@ function updateHeaderIndicator() {
         }
     } else {
         bottomBanner.classList.remove('pulse-active');
-        bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : "WAITING FOR OPPONENT...";
+        if(gameMode === 'pass') {
+             bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
+        } else {
+             bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : "WAITING FOR OPPONENT...";
+        }
         bottomBanner.style.borderColor = "#12213a";
     }
 }
@@ -417,12 +437,12 @@ function paintBoardOnVictory(winnerColor) {
 }
 
 function evaluateTurnShiftOffline(shouldTriggerAI = true) {
-    renderEngine();
     if(playerPieces.p1.r === 0) { clearInterval(turnTimer); paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("p1"); }, 400); return; }
     if(playerPieces.p2.r === GRID_SIZE - 1) { clearInterval(turnTimer); paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("p2"); }, 400); return; }
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
     resetTurnTimer(); 
+    renderEngine();
     
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
