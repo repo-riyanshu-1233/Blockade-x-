@@ -1,10 +1,10 @@
 const GRID_SIZE = 9; 
 
-const P1_COLOR = '#ff5252'; // Player 1 (Red)
-const P2_COLOR = '#00beff'; // Player 2 / AI (Blue)
+const P1_COLOR = '#ff5252'; 
+const P2_COLOR = '#00beff'; 
 
 let gameMode = 'pass'; 
-let myRole = 'p1';       // 'p1' (Absolute Red) ya 'p2' (Absolute Blue)
+let myRole = 'p1';       
 let activeTurn = 'p1'; 
 let aiDifficulty = 'medium'; 
 
@@ -230,7 +230,7 @@ function renderEngine() {
     updateHeaderIndicator();
 }
 
-// 🎯 FIXED WALL MISMATCH (COMPLETELY OVERHAULED TOUCH LOGIC FOR ROTATION SENSE)
+// 🎯 COMPLETE RELIABLE FIX FOR SYNC AND MISSTAP PARSING
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
@@ -238,24 +238,24 @@ function handleSmartCellTouch(e, r, c) {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; 
     const y = e.clientY - rect.top;
-    const edgeThreshold = rect.width * 0.28; 
+    const edgeThreshold = rect.width * 0.32; // Expanded target threshold bounds
 
     if (myRole === 'p2') {
-        // Flipped orientation parsing for P2
+        // P2 inverted space wall mapping logic
         if (y < edgeThreshold) { 
-            if(r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; } 
+            if(r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; } // Top boundary touch
         }
         if (y > (rect.height - edgeThreshold)) { 
-            if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } 
+            if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } // Bottom boundary touch
         }
         if (x < edgeThreshold) { 
-            if(c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; } 
+            if(c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; } // Left boundary touch
         }
         if (x > (rect.width - edgeThreshold)) { 
-            if(c > 0) { attemptWallPlacement('v', r, c - 1); return; } 
+            if(c > 0) { attemptWallPlacement('v', r, c - 1); return; } // Right boundary touch
         }
     } else {
-        // Standard absolute parsing for P1
+        // P1 normal absolute grid wall mapping logic 
         if (y < edgeThreshold) { 
             if(r > 0) { attemptWallPlacement('h', r - 1, c); return; } 
         }
@@ -270,6 +270,7 @@ function handleSmartCellTouch(e, r, c) {
         }
     }
 
+    // Runs ONLY if touch did not hit any wall margins. Prevents Misstaps.
     processPieceMovement(r, c);
 }
 
@@ -394,7 +395,6 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
 
-// 🏆 DYNAMIC WIN/LOSS HUD GENERATOR (FIXED FOR ALL MODES)
 function launchVictorySequence(winningRole) {
     const titleHeader = document.getElementById('victory-header-status');
     const subtitleText = document.getElementById('winner-declaration-text');
@@ -404,7 +404,6 @@ function launchVictorySequence(winningRole) {
     let localPlayerWon = (gameMode === 'pass') || (gameMode === 'ai' && winningRole === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && myRole === winningRole);
 
     if (localPlayerWon) {
-        // Local Device Wins
         titleHeader.innerText = "VICTORY!";
         titleHeader.style.color = "#8edc3a";
         cardBox.style.borderColor = "#8edc3a";
@@ -417,18 +416,17 @@ function launchVictorySequence(winningRole) {
         }
         subtitleText.style.color = "#8edc3a";
         showScreen('victory-screen'); 
-        startCelebrationCanvas(); // Firecrackers for winner
+        startCelebrationCanvas(); 
     } else {
-        // Local Device Loses
         titleHeader.innerText = "DEFEAT!";
         titleHeader.style.color = "#ff5252";
         cardBox.style.borderColor = "#ff5252";
-        shareBtn.style.display = "none"; // Hide share on loss
+        shareBtn.style.display = "none"; 
         
         subtitleText.innerText = "LOSE! BETTER LUCK NEXT TIME";
         subtitleText.style.color = "#ff5252";
         showScreen('victory-screen');
-        stopCelebrationCanvas(); // No firecrackers for loser
+        stopCelebrationCanvas(); 
     }
 }
 
