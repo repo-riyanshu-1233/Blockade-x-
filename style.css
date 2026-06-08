@@ -61,15 +61,16 @@ body {
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
+/* 🚀 INCREASED MAX-WIDTH TO INCREASE BOX HEIGHTS & PREVENT TOUCH MISSTAPS */
 .pixel-board-wrap { 
     background: #080f1a; 
-    padding: 8px; 
+    padding: 10px; 
     border: 4px solid #1c3254; 
     box-shadow: 6px 6px 0px black; 
     position: relative; 
-    margin: 5px auto; 
-    width: 92vw; 
-    max-width: 450px; 
+    margin: 8px auto; 
+    width: 95vw; 
+    max-width: 490px; 
     box-sizing: border-box;
 }
 
@@ -78,7 +79,7 @@ body {
     grid-template-columns: repeat(9, 1fr); 
     grid-template-rows: repeat(9, 1fr); 
     background: #0f1826; 
-    gap: 3px; 
+    gap: 4px; 
     width: 100%;
     aspect-ratio: 1 / 1; 
     position: relative; 
@@ -93,6 +94,8 @@ body {
     position: relative; 
     touch-action: manipulation; 
     transition: background-color 0.25s ease;
+    /* Added implicit padding min-height safety */
+    min-height: 42px;
 }
 
 .cell.goal-row-glow { 
@@ -106,8 +109,8 @@ body {
 }
 
 .game-piece { 
-    width: 70%; 
-    height: 70%; 
+    width: 72%; 
+    height: 72%; 
     border-radius: 50%; 
     z-index: 5; 
     box-shadow: inset -2px -2px 4px rgba(0,0,0,0.4), 0 0 6px rgba(0,0,0,0.3); 
@@ -129,9 +132,8 @@ body {
 }
 @keyframes wallFade { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 
-/* Wall layout defaults - absolute control handles are now dynamically overriden in JS */
-.visual-wall.h-wall { width: 100%; height: 6px; left: 0; }
-.visual-wall.v-wall { height: 100%; width: 6px; top: 0; }
+.visual-wall.h-wall { width: 100%; height: 7px; left: 0; }
+.visual-wall.v-wall { height: 100%; width: 7px; top: 0; }
 
 .retro-footer {
     display: flex; justify-content: space-between; align-items: center;
@@ -147,10 +149,10 @@ body {
     display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #ff9b13;
 }
 
-.game-header { display: flex; width: 100%; max-width: 450px; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; box-sizing: border-box; }
+.game-header { display: flex; width: 100%; max-width: 490px; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; box-sizing: border-box; }
 .score-tag-retro { font-size: 0.55rem; background: #12213a; padding: 6px 10px; border: 2px dashed #00beff; color: #00beff; }
 
-.live-turn-console { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 450px; margin-top: 8px; gap: 6px; }
+.live-turn-console { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 490px; margin-top: 8px; gap: 6px; }
 
 .turn-highlight-banner { 
     width: 100%; text-align: center; padding: 10px; font-size: 0.85rem; font-weight: bold; 
