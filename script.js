@@ -4,12 +4,13 @@ const P1_COLOR = '#ff5252'; // Player 1 (Red)
 const P2_COLOR = '#00beff'; // Player 2 / AI (Blue)
 
 let gameMode = 'pass'; 
-let myRole = 'p1'; 
+let myRole = 'p1';       // Online matches me dynamically decide hoga: 'p1' (Bottom) ya 'p2' (Top)
 let activeTurn = 'p1'; 
+let aiDifficulty = 'medium'; // easy, medium, hard, extreme
 
+// Base Matrix Coordinates (Hamesha Red: row 8 aur Blue: row 0 se suru hota hai)
 let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
 
-// Dynamic Maps Grid Allocations
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
@@ -43,7 +44,14 @@ function triggerGameNotice(msg, isPositive = false) {
 
 function launchDirectGame(mode) {
     gameMode = mode;
-    myRole = 'p1';
+    myRole = 'p1'; // Single-screen rules
+    setupFreshMatch();
+}
+
+function launchAIGame(diff) {
+    gameMode = 'ai';
+    aiDifficulty = diff;
+    myRole = 'p1'; // Human is Bottom (Red)
     setupFreshMatch();
 }
 
@@ -54,11 +62,9 @@ function generate5BitCode() {
     return text;
 }
 
-// ==========================================
-// 🛡️ MULTIPLAYER ENGINE NETWORK
-// ==========================================
+// NETWORK ENGINE WITH POOL & ROLE EXCHANGE FIXES
 function initiateSandboxHost() {
-    gameMode = 'host'; myRole = 'p1';
+    gameMode = 'host'; myRole = 'p1'; 
     showScreen('sandbox-host-screen');
     const roomCode = generate5BitCode();
     document.getElementById('sandbox-code-display').innerText = roomCode;
@@ -68,14 +74,19 @@ function initiateSandboxHost() {
         networkConnection = conn;
         setupNetworkListeners();
         triggerGameNotice("SANDBOX LINKED SUCCESS!", true);
-        setTimeout(() => { setupFreshMatch(); }, 1000);
+        setTimeout(() => { 
+            // Host random role assign karke transmit karega
+            myRole = Math.random() > 0.5 ? 'p1' : 'p2';
+            networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1') });
+            setupFreshMatch(); 
+        }, 1000);
     });
 }
 
 function connectSandboxHost() {
     const targetCode = document.getElementById('sandbox-input-code').value.trim().toUpperCase();
     if(targetCode.length !== 5) { triggerGameNotice("ENTER EXACT 5 VALUE CODE"); return; }
-    gameMode = 'client'; myRole = 'p2';
+    gameMode = 'client'; 
 
     peerNode = new Peer();
     peerNode.on('open', () => {
@@ -102,9 +113,7 @@ function startRandomMatchmaking() {
 
         function probeNextLobbySlot() {
             if (sweepId > 120 || connected) {
-                if(!connected) {
-                    document.getElementById('match-status-text').innerText = "WAITING POOL";
-                }
+                if(!connected) { document.getElementById('match-status-text').innerText = "WAITING POOL"; }
                 return;
             }
             if (sweepId === lobbyRandomTicket) { sweepId++; probeNextLobbySlot(); return; }
@@ -119,31 +128,33 @@ function startRandomMatchmaking() {
             proxyConnection.on('open', () => {
                 clearTimeout(joinWatchdog);
                 connected = true;
-                gameMode = 'client'; myRole = 'p2';
+                gameMode = 'client'; 
                 networkConnection = proxyConnection;
                 setupNetworkListeners();
-                triggerGameNotice("MATCH FOUND!", true);
-                setupFreshMatch();
             });
         }
         probeNextLobbySlot();
     });
 
     peerNode.on('connection', (incomingConn) => {
-        gameMode = 'host'; myRole = 'p1';
+        gameMode = 'host'; 
         networkConnection = incomingConn;
         setupNetworkListeners();
-        triggerGameNotice("OPPONENT ENTERED BASELINE!", true);
-        setTimeout(() => { setupFreshMatch(); }, 1000);
+        triggerGameNotice("OPPONENT ENTERED!", true);
+        setTimeout(() => { 
+            myRole = Math.random() > 0.5 ? 'p1' : 'p2';
+            networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1') });
+            setupFreshMatch(); 
+        }, 1000);
     });
 }
 
 function setupNetworkListeners() {
-    networkConnection.on('open', () => {
-        if(gameMode === 'client') setupFreshMatch();
-    });
     networkConnection.on('data', (data) => {
-        if(data.type === 'move') {
+        if(data.type === 'role-assign') {
+            myRole = data.assignedToClient;
+            setupFreshMatch();
+        } else if(data.type === 'move') {
             playerPieces[data.player] = data.coordinates;
             evaluateTurnShiftOffline(false);
         } else if(data.type === 'wall') {
@@ -163,16 +174,12 @@ function disconnectPeer() {
     showScreen('menu-screen');
 }
 
-// ==========================================================
-// 🧱 BOARD ENGINE: 100% SMART ANTI-MIS-TAP SMART INTENT LOGIC
-// ==========================================================
+// AUTOMATIC SCREEN MIRRORING & ASPECT ENGINE
 function setupFreshMatch() {
     activeTurn = 'p1';
     playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
-    
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
-
     showScreen('game-screen');
     renderEngine();
 }
@@ -181,20 +188,28 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
 
-    for(let r=0; r<GRID_SIZE; r++) {
-        for(let c=0; c<GRID_SIZE; c++) {
+    // MIRROR TRANSFORMATION LOGIC
+    // Agar local player Blue ('p2') h, toh board ko virtual inverted loop me render karo
+    for(let displayR=0; displayR<GRID_SIZE; displayR++) {
+        for(let displayC=0; displayC<GRID_SIZE; displayC++) {
+            
+            // Convert Screen Loop values into Absolute Logic indices based on Perspective
+            let r = (myRole === 'p2') ? (GRID_SIZE - 1 - displayR) : displayR;
+            let c = (myRole === 'p2') ? (GRID_SIZE - 1 - displayC) : displayC;
+
             let cell = document.createElement('div');
             cell.className = 'cell';
             cell.id = `cell-${r}-${c}`;
             
-            if(r === 0 || r === (GRID_SIZE - 1)) {
-                cell.classList.add('goal-glow');
+            // Goal line visual highlighter based on role perspective
+            if((myRole === 'p1' && r === 0) || (myRole === 'p2' && r === 8)) {
+                cell.classList.add('goal-glow'); 
             }
 
-            // SMART MULTI-ZONE TOUCH INTERCEPTOR (Prevents Mis-Taps completely)
+            // Click capture pass back to matrix indices
             cell.onclick = (event) => handleSmartCellTouch(event, r, c);
 
-            // Append Player Token
+            // Pieces allocation
             if(playerPieces.p1.r === r && playerPieces.p1.c === c) {
                 let piece = document.createElement('div');
                 piece.className = 'game-piece'; piece.style.backgroundColor = P1_COLOR;
@@ -205,22 +220,18 @@ function renderEngine() {
                 cell.appendChild(piece);
             }
 
-            // Append Visual Active Placed Walls (Rendered via non-clickable divs)
+            // Horizonal wall tracking
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
-                let vHWall = document.createElement('div');
-                vHWall.className = 'visual-wall h-wall';
-                vHWall.style.backgroundColor = hWalls[r][c];
-                vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
+                let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
+                vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
                 cell.appendChild(vHWall);
             }
+            // Vertical wall tracking
             if(c < GRID_SIZE - 1 && vWalls[r][c] !== null) {
-                let vVWall = document.createElement('div');
-                vVWall.className = 'visual-wall v-wall';
-                vVWall.style.backgroundColor = vWalls[r][c];
-                vVWall.style.boxShadow = `0 0 8px ${vWalls[r][c]}`;
+                let vVWall = document.createElement('div'); vVWall.className = 'visual-wall v-wall';
+                vVWall.style.backgroundColor = vWalls[r][c]; vVWall.style.boxShadow = `0 0 8px ${vWalls[r][c]}`;
                 cell.appendChild(vVWall);
             }
-
             board.appendChild(cell);
         }
     }
@@ -228,53 +239,57 @@ function renderEngine() {
 }
 
 function handleSmartCellTouch(e, r, c) {
+    if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
+    if(gameMode === 'ai' && activeTurn === 'p2') return;
+
     const rect = e.currentTarget.getBoundingClientRect();
-    // Get absolute exact touch percentages inside this single cell
     const x = e.clientX - rect.left; 
     const y = e.clientY - rect.top;
-    
-    const edgeThreshold = rect.width * 0.28; // Kinare ka 28% area reserve for wall
+    const edgeThreshold = rect.width * 0.28; 
 
-    // Check if user tapped near the bottom boundary (Horizontal Wall intent)
-    if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) {
-        attemptWallPlacement('h', r, c);
-        return;
-    }
-    // Check if user tapped near the right boundary (Vertical Wall intent)
-    if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) {
-        attemptWallPlacement('v', r, c);
-        return;
+    // Mirroring dynamic direction checks for wall clicks
+    if (myRole === 'p2') {
+        if (y < edgeThreshold && r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; }
+        if (x < edgeThreshold && c > 0) { attemptWallPlacement('v', r, c - 1); return; }
+    } else {
+        if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { attemptWallPlacement('h', r, c); return; }
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { attemptWallPlacement('v', r, c); return; }
     }
 
-    // Default Tapped in Center -> Clearly wants to Move Character Piece!
     processPieceMovement(r, c);
 }
 
 function updateHeaderIndicator() {
     const bottomBanner = document.getElementById('bottom-turn-banner');
-    if(gameMode !== 'pass' && gameMode !== 'ai') {
-        if(activeTurn === myRole) {
-            bottomBanner.innerText = "🔴 RED: YOUR TURN";
-            bottomBanner.style.borderColor = P1_COLOR;
+    const identityTag = document.getElementById('identity-tag');
+
+    // Role tags setup
+    if(gameMode === 'pass') { identityTag.innerText = "PASS & PLAY"; } 
+    else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
+    else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED (BOTTOM)" : "🔵 YOU: BLUE (BOTTOM)"; }
+
+    // Active turns animations logic
+    let isMyTurn = (gameMode === 'pass') || (gameMode === 'ai' && activeTurn === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && activeTurn === myRole);
+    
+    if(isMyTurn) {
+        bottomBanner.classList.add('pulse-active');
+        if(gameMode === 'pass') {
+            bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
+            bottomBanner.style.borderColor = activeTurn === 'p1' ? P1_COLOR : P2_COLOR;
         } else {
-            bottomBanner.innerText = "🔵 BLUE: OPPONENT'S TURN";
-            bottomBanner.style.borderColor = P2_COLOR;
+            bottomBanner.innerText = "YOUR TURN ! CHOOSE ACTION";
+            bottomBanner.style.borderColor = myRole === 'p1' ? P1_COLOR : P2_COLOR;
         }
-        return;
+    } else {
+        bottomBanner.classList.remove('pulse-active');
+        bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : "WAITING FOR OPPONENT...";
+        bottomBanner.style.borderColor = "#12213a";
     }
-    bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : ((gameMode === 'ai') ? "🔵 BLUE ROBOT🤖 TURN" : "🔵 BLUE PLAYER 2 TURN");
-    bottomBanner.style.borderColor = activeTurn === 'p1' ? P1_COLOR : P2_COLOR;
 }
 
 function isWallBlocking(r1, c1, r2, c2) {
-    if (r1 === r2) { 
-        let minC = Math.min(c1, c2);
-        if (vWalls[r1][minC] !== null) return true;
-    }
-    if (c1 === c2) { 
-        let minR = Math.min(r1, r2);
-        if (hWalls[minR][c1] !== null) return true;
-    }
+    if (r1 === r2) { let minC = Math.min(c1, c2); if (vWalls[r1][minC] !== null) return true; }
+    if (c1 === c2) { let minR = Math.min(r1, r2); if (hWalls[minR][c1] !== null) return true; }
     return false;
 }
 
@@ -286,14 +301,12 @@ function getShortestPathDistance(startPos, targetRow) {
     while(queue.length > 0) {
         let curr = queue.shift();
         if (curr.r === targetRow) return curr.dist;
-        
         let directions = [{r: -1, c: 0}, {r: 1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}];
         for(let d of directions) {
             let nr = curr.r + d.r; let nc = curr.c + d.c;
             if(nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
                 if(!visited[nr][nc] && !isWallBlocking(curr.r, curr.c, nr, nc)) {
-                    visited[nr][nc] = true;
-                    queue.push({r: nr, c: nc, dist: curr.dist + 1});
+                    visited[nr][nc] = true; queue.push({r: nr, c: nc, dist: curr.dist + 1});
                 }
             }
         }
@@ -301,100 +314,50 @@ function getShortestPathDistance(startPos, targetRow) {
     return Infinity;
 }
 
-function hasValidPath(startPos, targetRow) {
-    return getShortestPathDistance(startPos, targetRow) !== Infinity;
-}
+function hasValidPath(startPos, targetRow) { return getShortestPathDistance(startPos, targetRow) !== Infinity; }
 
 function attemptWallPlacement(type, r, c) {
-    if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
-    if(gameMode === 'ai' && activeTurn === 'p2') return;
-
     let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
-
-    if(type === 'h') {
-        if(hWalls[r][c] !== null) return;
-        hWalls[r][c] = activeColor;
-    } else {
-        if(vWalls[r][c] !== null) return;
-        vWalls[r][c] = activeColor;
-    }
+    if(type === 'h') { if(hWalls[r][c] !== null) return; hWalls[r][c] = activeColor; } 
+    else { if(vWalls[r][c] !== null) return; vWalls[r][c] = activeColor; }
 
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
-        triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
-        return;
+        triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!"); return;
     }
 
     if(gameMode === 'host' || gameMode === 'client') {
         networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
     }
-    
     evaluateTurnShiftOffline(true);
 }
 
 function processPieceMovement(tarR, tarC) {
-    if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
-    if(gameMode === 'ai' && activeTurn === 'p2') return;
-
     let loc = playerPieces[activeTurn];
-    let oppPlayer = (activeTurn === 'p1') ? 'p2' : 'p1';
-    let opp = playerPieces[oppPlayer];
+    let opp = playerPieces[(activeTurn === 'p1') ? 'p2' : 'p1'];
 
-    let dr = tarR - loc.r;
-    let dc = tarC - loc.c;
-    let absDr = Math.abs(dr);
-    let absDc = Math.abs(dc);
+    let dr = tarR - loc.r; let dc = tarC - loc.c;
+    let absDr = Math.abs(dr); let absDc = Math.abs(dc);
 
-    // 1. STANDARD MOVE
     if ((absDr === 1 && dc === 0) || (dr === 0 && absDc === 1)) {
         if (isWallBlocking(loc.r, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED!"); return; }
-        if (opp.r === tarR && opp.c === tarC) { triggerGameNotice("⚠️ TAP BEYOND OPPONENT TO JUMP!"); return; }
-        
-        playerPieces[activeTurn] = { r: tarR, c: tarC };
-        finalizeMoveTransmission();
-        return;
+        if (opp.r === tarR && opp.c === tarC) { triggerGameNotice("⚠️ JUMP OVER OPPONENT!"); return; }
+        playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
     }
-
-    // 2. LINEAR SKIP JUMP
     if (absDr === 2 && dc === 0) {
         let midR = loc.r + (dr / 2);
         if (opp.r === midR && opp.c === loc.c) {
-            if (isWallBlocking(loc.r, loc.c, midR, loc.c) || isWallBlocking(midR, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKING JUMP!"); return; }
-            playerPieces[activeTurn] = { r: tarR, c: tarC };
-            finalizeMoveTransmission();
-            return;
+            if (isWallBlocking(loc.r, loc.c, midR, loc.c) || isWallBlocking(midR, loc.c, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED!"); return; }
+            playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
         }
     }
     if (dr === 0 && absDc === 2) {
         let midC = loc.c + (dc / 2);
         if (opp.r === loc.r && opp.c === midC) {
-            if (isWallBlocking(loc.r, loc.c, loc.r, midC) || isWallBlocking(loc.r, midC, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKING JUMP!"); return; }
-            playerPieces[activeTurn] = { r: tarR, c: tarC };
-            finalizeMoveTransmission();
-            return;
+            if (isWallBlocking(loc.r, loc.c, loc.r, midC) || isWallBlocking(loc.r, midC, tarR, tarC)) { triggerGameNotice("⚠️ WALL BLOCKED!"); return; }
+            playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
         }
     }
-
-    // 3. DIAGONAL JUMP
-    if (absDr === 1 && absDc === 1) {
-        if (opp.r === tarR && opp.c === loc.c) {
-            let behindR = opp.r + (tarR - loc.r);
-            if (behindR < 0 || behindR >= GRID_SIZE || isWallBlocking(opp.r, opp.c, behindR, opp.c)) {
-                if (!isWallBlocking(loc.r, loc.c, opp.r, opp.c) && !isWallBlocking(opp.r, opp.c, tarR, tarC)) {
-                    playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
-                }
-            }
-        }
-        if (opp.r === loc.r && opp.c === tarC) {
-            let behindC = opp.c + (tarC - loc.c);
-            if (behindC < 0 || behindC >= GRID_SIZE || isWallBlocking(opp.r, opp.c, opp.r, behindC)) {
-                if (!isWallBlocking(loc.r, loc.c, opp.r, opp.c) && !isWallBlocking(opp.r, opp.c, tarR, tarC)) {
-                    playerPieces[activeTurn] = { r: tarR, c: tarC }; finalizeMoveTransmission(); return;
-                }
-            }
-        }
-    }
-
     triggerGameNotice("⚠️ INVALID TRACK DIRECTION!");
 }
 
@@ -406,32 +369,17 @@ function finalizeMoveTransmission() {
 }
 
 function paintBoardOnVictory(winnerColor) {
-    document.querySelectorAll('.cell').forEach(cell => {
-        cell.style.backgroundColor = winnerColor;
-    });
+    document.querySelectorAll('.cell').forEach(cell => { cell.style.backgroundColor = winnerColor; });
 }
 
 function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     renderEngine();
-    
-    if(playerPieces.p1.r === 0) {
-        paintBoardOnVictory(P1_COLOR);
-        setTimeout(() => { launchVictorySequence("red"); }, 400);
-        return;
-    }
-    
-    if(playerPieces.p2.r === GRID_SIZE - 1) {
-        paintBoardOnVictory(P2_COLOR);
-        setTimeout(() => { launchVictorySequence("blue"); }, 400);
-        return;
-    }
+    if(playerPieces.p1.r === 0) { paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("red"); }, 400); return; }
+    if(playerPieces.p2.r === GRID_SIZE - 1) { paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("blue"); }, 400); return; }
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
     updateHeaderIndicator();
-
-    if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) {
-        setTimeout(executeAdvancedRobotAI, 400);
-    }
+    if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
 
 function launchVictorySequence(winner) {
@@ -441,126 +389,96 @@ function launchVictorySequence(winner) {
 
     if (gameMode === 'ai') {
         if (winner === 'red') {
-            titleHeader.innerText = "VICTORY!";
-            titleHeader.style.color = "#ff9b13";
-            subtitleText.innerText = "CONGRATULATIONS FOR RED PLAYER";
-            subtitleText.style.color = "#8edc3a";
-            cardBox.style.borderColor = "#ff9b13";
+            titleHeader.innerText = "VICTORY!"; titleHeader.style.color = "#8edc3a";
+            subtitleText.innerText = "YOU DEFEATED THE SYSTEM BOT!"; subtitleText.style.color = "#8edc3a";
         } else {
-            titleHeader.innerText = "YOU LOOSE!";
-            titleHeader.style.color = "#ff5252";
-            subtitleText.innerText = "BETTER LUCK NEXT TIME";
-            subtitleText.style.color = "#ff5252";
-            cardBox.style.borderColor = "#ff5252";
+            titleHeader.innerText = "DEFEAT!"; titleHeader.style.color = "#ff5252";
+            subtitleText.innerText = "BOT WON! BETTER LUCK NEXT TIME"; subtitleText.style.color = "#ff5252";
         }
     } else {
         titleHeader.innerText = "VICTORY!";
-        titleHeader.style.color = "#ff9b13";
-        cardBox.style.borderColor = "#ff9b13";
-        if (winner === 'red') {
-            subtitleText.innerText = "CONGRATULATIONS FOR RED PLAYER";
-            subtitleText.style.color = P1_COLOR;
-        } else {
-            subtitleText.innerText = "CONGRATULATIONS FOR BLUE PLAYER";
-            subtitleText.style.color = P2_COLOR;
-        }
+        if(winner === 'red') { titleHeader.style.color = P1_COLOR; subtitleText.innerText = "CONGRATULATIONS RED PLAYER!"; subtitleText.style.color = P1_COLOR; }
+        else { titleHeader.style.color = P2_COLOR; subtitleText.innerText = "CONGRATULATIONS BLUE PLAYER!"; subtitleText.style.color = P2_COLOR; }
     }
-
-    showScreen('victory-screen');
-    startCelebrationCanvas();
+    showScreen('victory-screen'); startCelebrationCanvas();
 }
 
-function executeAdvancedRobotAI() {
-    let ai = playerPieces.p2;     
-    let human = playerPieces.p1;  
+// 🤖 DYNAMIC 4-LEVEL DIFFICULTY BOT ENGINE
+function execute4LevelEngineAI() {
+    let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
-    let humanDist = getShortestPathDistance(human, 0);
-    let aiDist = getShortestPathDistance(ai, GRID_SIZE - 1);
+    // Phase 1: Difficulty Based Probability Setup
+    let blockProbability = 0;
+    if (aiDifficulty === 'easy') blockProbability = 0.05;
+    else if (aiDifficulty === 'medium') blockProbability = 0.40;
+    else if (aiDifficulty === 'hard') blockProbability = 0.75;
+    else if (aiDifficulty === 'extreme') blockProbability = 0.95;
 
-    if (humanDist <= aiDist && human.r > 0) {
-        let blockR = human.r - 1;
-        let blockC = human.c;
-        if(blockR >= 0 && hWalls[blockR][blockC] === null) {
+    // AI Attempts Interception/Blocking (Smarter on Hard & Extreme)
+    if (Math.random() < blockProbability && human.r > 1) {
+        let blockR = human.r - 1; let blockC = human.c;
+        if (hWalls[blockR][blockC] === null) {
             hWalls[blockR][blockC] = P2_COLOR;
             if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                actionTaken = true;
-                triggerGameNotice("🤖 ROBOT TRAPPED YOUR LINE!");
-            } else {
-                hWalls[blockR][blockC] = null; 
-            }
+                actionTaken = true; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+            } else { hWalls[blockR][blockC] = null; }
         }
     }
 
+    // Phase 2: Path Finding Steps
     if (!actionTaken) {
-        let bestStep = null;
-        let minPathLength = Infinity;
         let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
+        
+        // Randomize moves for Easy Mode to reduce its IQ
+        if(aiDifficulty === 'easy') {
+            validSteps.sort(() => Math.random() - 0.5);
+        } else {
+            // Sort by shortest paths to goal row (9) for smarter modes
+            validSteps.sort((a, b) => {
+                let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
+                let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
+                return distA - distB;
+            });
+        }
 
         for (let step of validSteps) {
             if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
                 if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
-                    let d = getShortestPathDistance(step, GRID_SIZE - 1);
-                    if (d < minPathLength) { minPathLength = d; bestStep = step; }
-                }
-            }
-        }
-        if (bestStep) { playerPieces.p2 = bestStep; actionTaken = true; }
-    }
-
-    if (!actionTaken) {
-        for (let tr = 0; tr < 15; tr++) {
-            let rr = Math.floor(Math.random() * (GRID_SIZE - 1));
-            let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
-            if (hWalls[rr][rc] === null && Math.random() > 0.5) {
-                hWalls[rr][rc] = P2_COLOR;
-                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) { actionTaken = true; break; }
-                hWalls[rr][rc] = null;
-            } else if (vWalls[rr][rc] === null) {
-                vWalls[rr][rc] = P2_COLOR;
-                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) { actionTaken = true; break; }
-                vWalls[rr][rc] = null;
-            }
-        }
-    }
-
-    if (!actionTaken) {
-        let escapes = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
-        for (let esc of escapes) {
-            if (esc.r >= 0 && esc.r < GRID_SIZE && esc.c >= 0 && esc.c < GRID_SIZE) {
-                if (!isWallBlocking(ai.r, ai.c, esc.r, esc.c) && !(human.r === esc.r && human.c === esc.c)) {
-                    playerPieces.p2 = esc; break;
+                    playerPieces.p2 = step; actionTaken = true; break;
                 }
             }
         }
     }
+
+    // Fallback Random Wall Placer
+    if (!actionTaken) {
+        let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
+        if (hWalls[rr][rc] === null) hWalls[rr][rc] = P2_COLOR;
+        else if (vWalls[rr][rc] === null) vWalls[rr][rc] = P2_COLOR;
+    }
+
     evaluateTurnShiftOffline(false);
 }
 
 function startCelebrationCanvas() {
-    const canvas = document.getElementById('firecracker-canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('firecracker-canvas'); const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    
     let particles = [];
     function spawnBurst() {
         let sx = Math.random() * canvas.width; let sy = Math.random() * (canvas.height * 0.5);
         let pallet = [P1_COLOR, P2_COLOR, '#8edc3a', '#ff9b13'];
         let shardColor = pallet[Math.floor(Math.random() * pallet.length)];
-        for(let i=0; i<40; i++) {
-            particles.push({ x: sx, y: sy, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, alpha: 1, color: shardColor });
-        }
+        for(let i=0; i<40; i++) { particles.push({ x: sx, y: sy, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, alpha: 1, color: shardColor }); }
     }
     firecrackerInterval = setInterval(spawnBurst, 350);
-
     function animate() {
         if(!document.getElementById('victory-screen').classList.contains('active')) return;
         ctx.clearRect(0,0, canvas.width, canvas.height);
         particles.forEach((p, idx) => {
             p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.alpha -= 0.012;
             if(p.alpha <= 0) particles.splice(idx, 1);
-            ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
-            ctx.fillRect(p.x, p.y, 6, 6);
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, 6, 6);
         });
         ctx.globalAlpha = 1; requestAnimationFrame(animate);
     }
@@ -570,17 +488,9 @@ function startCelebrationCanvas() {
 function stopCelebrationCanvas() { clearInterval(firecrackerInterval); }
 
 function shareVictoryTray() {
-    const shareTemplate = `🏆 Blockade X matches dominated! Try outwitting my strategic walls: ${window.location.href}`;
-    if (navigator.share) {
-        navigator.share({ title: 'BLOCKADE X CONQUEST', text: shareTemplate, url: window.location.href }).catch(() => {});
-    } else {
-        navigator.clipboard.writeText(shareTemplate);
-        triggerGameNotice("LINK SAVED TO CLIPBOARD!", true);
-    }
+    const shareTemplate = `⚔️ Blockade X matches dominated! Try outwitting my strategic walls: ${window.location.href}`;
+    if (navigator.share) { navigator.share({ title: 'BLOCKADE X CONQUEST', text: shareTemplate, url: window.location.href }).catch(() => {}); } 
+    else { navigator.clipboard.writeText(shareTemplate); triggerGameNotice("LINK SAVED TO CLIPBOARD!", true); }
 }
 
-function confirmExit() {
-    if(peerNode) peerNode.destroy();
-    stopCelebrationCanvas();
-    showScreen('menu-screen');
-}
+function confirmExit() { if(peerNode) peerNode.destroy(); stopCelebrationCanvas(); showScreen('menu-screen'); }
