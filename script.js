@@ -222,11 +222,11 @@ function triggerTimedRuleNotice() {
     if(!noticeBox || !noticeText) return;
 
     if(gameMode === 'pass') {
-        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nNO PLACEMENTS CAN BE REFUNDED!";
+        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nMIMD YOUR STEPS NO MOVE IS REVERTED!";
     } else if(gameMode === 'ai') {
         noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n10 WALLS CAPACITY CAP ASSIGNED.\n\nMAKE STEPS COUNT!`;
     } else {
-        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nNO TURNS CAN BE REVERTED!";
+        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nMIND YOUR STEPS NO TURNS CAN BE REVERTED!";
     }
 
     noticeBox.classList.remove('hide');
