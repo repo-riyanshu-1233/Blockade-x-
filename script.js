@@ -10,12 +10,14 @@ let aiDifficulty = 'medium';
 
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
 
+// 🧱 Real-time system trackers for wall count
+let wallInventory = { p1: 10, p2: 10 };
+
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
 let turnTimer = null;
 let timeLeft = 30;
-let pendingWall = null; 
 
 let peerNode = null;
 let networkConnection = null;
@@ -26,7 +28,12 @@ function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     if(screenId !== 'victory-screen') stopCelebrationCanvas();
-    if(screenId !== 'game-screen') clearInterval(turnTimer); 
+    if(screenId !== 'game-screen') {
+        clearInterval(turnTimer);
+        if(document.getElementById('match-startup-notice')) {
+            document.getElementById('match-startup-notice').classList.add('hide');
+        }
+    }
 }
 
 function toggleModal(modalId, isOpen) {
@@ -145,11 +152,10 @@ function setupNetworkListeners() {
         } else if(data.type === 'wall') {
             if(data.wallType === 'h') hWalls[data.r][data.c] = data.color;
             else vWalls[data.r][data.c] = data.color;
+            wallInventory[data.player]--; 
             evaluateTurnShiftOffline(false);
         } else if(data.type === 'timeout') {
-            // ⏱️ Synchronized execution when opponent times out
             triggerGameNotice("⚠️ OPPONENT TIMED OUT! YOUR TURN");
-            cancelWallPlacement();
             evaluateTurnShiftOffline(false);
         }
     });
@@ -163,14 +169,43 @@ function disconnectPeer() {
 }
 
 function setupFreshMatch() {
-    activeTurn = 'p1'; // Game ALWAYS starts with p1 (Red)
+    activeTurn = 'p1'; 
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
+    
+    // 📊 Distribute inventory configurations per match rules
+    if(gameMode === 'pass') {
+        wallInventory = { p1: 20, p2: 20 };
+    } else {
+        wallInventory = { p1: 10, p2: 10 };
+    }
+
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
-    pendingWall = null;
+    
     showScreen('game-screen');
-    resetTurnTimer();
     renderEngine();
+    triggerTimedRuleNotice(); 
+    resetTurnTimer();
+}
+
+// ⏳ 5-Second Notice Dynamic Engine
+function triggerTimedRuleNotice() {
+    const noticeBox = document.getElementById('match-startup-notice');
+    const noticeText = document.getElementById('startup-notice-text');
+    if(!noticeBox || !noticeText) return;
+
+    if(gameMode === 'pass') {
+        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nNO PLACEMENTS CAN BE REFUNDED!";
+    } else if(gameMode === 'ai') {
+        noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n10 WALLS CAPACITY CAP ASSIGNED.\n\nMAKE STEPS COUNT!`;
+    } else {
+        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nNO TURNS CAN BE REVERTED!";
+    }
+
+    noticeBox.classList.remove('hide');
+    setTimeout(() => {
+        noticeBox.classList.add('hide');
+    }, 5000);
 }
 
 function resetTurnTimer() {
@@ -184,16 +219,13 @@ function resetTurnTimer() {
         
         if(timeLeft <= 0) {
             clearInterval(turnTimer);
-            cancelWallPlacement(); 
             
-            // If it's my turn and I timeout, notify the other player over network
             let isOnlineMatch = (gameMode === 'host' || gameMode === 'client');
             if(isOnlineMatch && activeTurn === myRole) {
                 networkConnection.send({ type: 'timeout' });
                 triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
                 evaluateTurnShiftOffline(true);
             } else if (!isOnlineMatch) {
-                // Pass & Play or AI timeout fallback
                 triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
                 evaluateTurnShiftOffline(true);
             }
@@ -205,6 +237,10 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     if (!board) return; 
     board.innerHTML = '';
+
+    // Update real-time counts into headers
+    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = wallInventory.p1;
+    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = wallInventory.p2;
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
@@ -248,21 +284,6 @@ function renderEngine() {
                 cell.appendChild(vVWall);
             }
 
-            if(pendingWall && pendingWall.r === r && pendingWall.c === c) {
-                let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
-                if(pendingWall.type === 'h' && r < GRID_SIZE - 1) {
-                    let previewWall = document.createElement('div'); previewWall.className = 'visual-wall h-wall';
-                    previewWall.style.backgroundColor = activeColor; previewWall.style.opacity = '0.5';
-                    if(myRole === 'p2') { previewWall.style.top = '-4px'; } else { previewWall.style.bottom = '-4px'; }
-                    cell.appendChild(previewWall);
-                } else if(pendingWall.type === 'v' && c < GRID_SIZE - 1) {
-                    let previewWall = document.createElement('div'); previewWall.className = 'visual-wall v-wall';
-                    previewWall.style.backgroundColor = activeColor; previewWall.style.opacity = '0.5';
-                    if(myRole === 'p2') { previewWall.style.left = '-4px'; } else { previewWall.style.right = '-4px'; }
-                    cell.appendChild(previewWall);
-                }
-            }
-
             board.appendChild(cell);
         }
     }
@@ -272,45 +293,34 @@ function renderEngine() {
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
-    if(pendingWall) return; 
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
     const edgeThreshold = rect.width * 0.35; 
 
-    if (myRole === 'p2') {
-        if (y < edgeThreshold && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
-        if (y > (rect.height - edgeThreshold) && r > 0) { triggerWallPreview('h', r - 1, c); return; }
-        if (x < edgeThreshold && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c); return; }
-        if (x > (rect.width - edgeThreshold) && c > 0) { triggerWallPreview('v', r, c - 1); return; }
-    } else {
-        if (y < edgeThreshold && r > 0) { triggerWallPreview('h', r - 1, c); return; }
-        if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
-        if (x < edgeThreshold && c > 0) { triggerWallPreview('v', r, c - 1); return; }
-        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c - 1); return; }
+    let hasWallsLeft = wallInventory[activeTurn] > 0;
+
+    // ⚡ Direct Instant Execution Logic (Bypassed Confirmation Step)
+    if (hasWallsLeft) {
+        if (myRole === 'p2') {
+            if (y < edgeThreshold && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
+            if (y > (rect.height - edgeThreshold) && r > 0) { commitDirectWall('h', r - 1, c); return; }
+            if (x < edgeThreshold && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
+            if (x > (rect.width - edgeThreshold) && c > 0) { commitDirectWall('v', r, c - 1); return; }
+        } else {
+            if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
+            if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
+            if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
+            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
+        }
     }
 
     processPieceMovement(r, c);
 }
 
-function triggerWallPreview(type, r, c) {
+function commitDirectWall(type, r, c) {
     if(type === 'h' && hWalls[r][c] !== null) return;
     if(type === 'v' && vWalls[r][c] !== null) return;
-
-    pendingWall = { type: type, r: r, c: c };
-    renderEngine(); 
-
-    document.getElementById('bottom-turn-banner').classList.add('hide');
-    document.getElementById('wall-confirm-panel').classList.remove('hide');
-}
-
-function commitWallPlacement() {
-    if(!pendingWall) return;
-    let type = pendingWall.type; let r = pendingWall.r; let c = pendingWall.c;
-    pendingWall = null; 
-
-    document.getElementById('wall-confirm-panel').classList.add('hide');
-    document.getElementById('bottom-turn-banner').classList.remove('hide');
 
     let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
     if(type === 'h') hWalls[r][c] = activeColor; else vWalls[r][c] = activeColor;
@@ -322,17 +332,12 @@ function commitWallPlacement() {
         return;
     }
 
+    wallInventory[activeTurn]--;
+
     if(gameMode === 'host' || gameMode === 'client') {
-        networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
+        networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor, player: activeTurn });
     }
     evaluateTurnShiftOffline(true);
-}
-
-function cancelWallPlacement() {
-    pendingWall = null;
-    document.getElementById('wall-confirm-panel').classList.add('hide');
-    document.getElementById('bottom-turn-banner').classList.remove('hide');
-    renderEngine();
 }
 
 function updateHeaderIndicator() {
@@ -344,7 +349,6 @@ function updateHeaderIndicator() {
     else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
     else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED" : "🔵 YOU: BLUE"; }
 
-    // 🔒 FIXED EXPLICIT TURN CHECK: No more flip-flops
     let isMyTurn = (gameMode === 'pass') || (gameMode === 'ai' && activeTurn === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && activeTurn === myRole);
     
     if(isMyTurn) {
@@ -353,7 +357,11 @@ function updateHeaderIndicator() {
             bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
             bottomBanner.style.borderColor = activeTurn === 'p1' ? P1_COLOR : P2_COLOR;
         } else {
-            bottomBanner.innerText = "YOUR TURN ! CHOOSE ACTION";
+            if(wallInventory[myRole] <= 0) {
+                bottomBanner.innerText = "YOUR TURN ! OUT OF WALLS (MOVE PIECE)";
+            } else {
+                bottomBanner.innerText = "YOUR TURN ! MOVE OR TAP GAP PLACE";
+            }
             bottomBanner.style.borderColor = myRole === 'p1' ? P1_COLOR : P2_COLOR;
         }
     } else {
@@ -482,7 +490,7 @@ function execute4LevelEngineAI() {
         if (hWalls[blockR][blockC] === null) {
             hWalls[blockR][blockC] = P2_COLOR;
             if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                actionTaken = true; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+                actionTaken = true; wallInventory.p2--; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
             } else { hWalls[blockR][blockC] = null; }
         }
     }
@@ -510,8 +518,8 @@ function execute4LevelEngineAI() {
 
     if (!actionTaken) {
         let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
-        if (hWalls[rr][rc] === null) hWalls[rr][rc] = P2_COLOR;
-        else if (vWalls[rr][rc] === null) vWalls[rr][rc] = P2_COLOR;
+        if (hWalls[rr][rc] === null && wallInventory.p2 > 0) { hWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
+        else if (vWalls[rr][rc] === null && wallInventory.p2 > 0) { vWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
     }
 
     evaluateTurnShiftOffline(false);
