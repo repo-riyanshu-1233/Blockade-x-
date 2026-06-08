@@ -8,6 +8,7 @@
     --pixel-blue-top: #00beff;  --pixel-blue-bot: #0081cc;  --pixel-blue-border: #002d54;
     --pixel-orange-top: #ff9b13;--pixel-orange-bot: #cc6a00;--pixel-orange-border: #4a2300;
     --pixel-red-top: #ff5252;   --pixel-red-bot: #c62828;   --pixel-red-border: #490c0c;
+    --pixel-grey-top: #a0aab5;  --pixel-grey-bot: #687482;  --pixel-grey-border: #2c3540;
 }
 
 body {
@@ -29,12 +30,13 @@ body {
     width: 100%; max-width: 600px;
     padding: 15px; box-sizing: border-box;
     position: relative;
+    transition: opacity 0.3s ease-in-out;
 }
 .screen.active { display: flex; }
 .screen.large-layout { max-width: 100vw; }
 
 .game-title { font-size: 2.2rem; text-align: center; margin: 0; color: #00beff; text-shadow: 4px 4px 0px #002d54; }
-.game-subtitle { font-size: 0.75rem; color: #8edc3a; margin-bottom: 35px; text-align: center; }
+.game-subtitle { font-size: 0.65rem; color: #8edc3a; margin-bottom: 35px; text-align: center; letter-spacing: 1px; }
 .screen-title { font-size: 1.1rem; margin-bottom: 25px; text-align: center; color: #ff9b13;}
 
 .pixel-btn {
@@ -46,6 +48,7 @@ body {
     box-sizing: border-box; display: inline-block;
     text-shadow: 2px 2px 0px rgba(0,0,0,0.3);
     width: 100%;
+    transition: transform 0.1s;
 }
 .pixel-btn.compact { font-size: 0.65rem; padding: 8px 14px; border-width: 3px; width: auto; }
 
@@ -53,11 +56,12 @@ body {
 .pixel-btn.blue { background: linear-gradient(to bottom, var(--pixel-blue-top) 50%, var(--pixel-blue-bot) 50%); color: white; border-color: var(--pixel-blue-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.orange { background: linear-gradient(to bottom, var(--pixel-orange-top) 50%, var(--pixel-orange-bot) 50%); color: white; border-color: var(--pixel-orange-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.red { background: linear-gradient(to bottom, var(--pixel-red-top) 50%, var(--pixel-red-bot) 50%); color: white; border-color: var(--pixel-red-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
+.pixel-btn.grey { background: linear-gradient(to bottom, var(--pixel-grey-top) 50%, var(--pixel-grey-bot) 50%); color: white; border-color: var(--pixel-grey-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
-/* 📱 RESPONSIVE GAME BOARD FIXED FOR MOBILE SCREEN */
+/* 📱 BOARD DESIGN WITH SMOOTH CELL TRANSITIONS */
 .pixel-board-wrap { 
     background: #080f1a; 
     padding: 8px; 
@@ -66,7 +70,7 @@ body {
     position: relative; 
     margin: 5px auto; 
     width: 92vw; 
-    max-width: 480px; 
+    max-width: 450px; 
     box-sizing: border-box;
 }
 
@@ -77,7 +81,7 @@ body {
     background: #0f1826; 
     gap: 3px; 
     width: 100%;
-    aspect-ratio: 1 / 1; /* Board hamesha perfectly square rahega */
+    aspect-ratio: 1 / 1; 
     position: relative; 
 }
 
@@ -88,41 +92,40 @@ body {
     justify-content: center; 
     cursor: pointer; 
     position: relative; 
-    touch-action: manipulation; /* Mobile delay khataam karne ke liye */
+    touch-action: manipulation; 
+    transition: background-color 0.25s ease;
 }
-.cell.goal-glow { background-color: rgba(142, 220, 58, 0.18) !important; box-shadow: inset 0 0 6px rgba(142, 220, 58, 0.5); }
+.cell.goal-glow { background-color: rgba(142, 220, 58, 0.12) !important; box-shadow: inset 0 0 6px rgba(142, 220, 58, 0.3); }
 
-/* Dynamic Glow Pieces */
+/* ✨ SMOOTH BOUNCY ANIMATION FOR GAME PIECES */
 .game-piece { 
     width: 70%; 
     height: 70%; 
     border-radius: 50%; 
     z-index: 5; 
     box-shadow: inset -2px -2px 4px rgba(0,0,0,0.4), 0 0 6px rgba(0,0,0,0.3); 
-    pointer-events: none; /* Takki piece touch block na kare */
+    pointer-events: none; 
+    animation: piecePopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-/* VISUAL PLACED WALL DESIGN (NO INTERFERENCE WITH TOUCHES) */
+@keyframes piecePopIn {
+    0% { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* VISUAL PLACED WALL DESIGN WITH GLOW */
 .visual-wall {
     position: absolute;
     z-index: 15;
     pointer-events: none;
     border: 1px solid rgba(0, 0, 0, 0.3);
+    animation: wallFade 0.2s ease-out;
 }
-.visual-wall.h-wall {
-    width: 100%;
-    height: 6px;
-    bottom: -4px;
-    left: 0;
-}
-.visual-wall.v-wall {
-    height: 100%;
-    width: 6px;
-    right: -4px;
-    top: 0;
-}
+@keyframes wallFade { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 
-/* LAYOUT FOOTERS */
+.visual-wall.h-wall { width: 100%; height: 6px; bottom: -4px; left: 0; }
+.visual-wall.v-wall { height: 100%; width: 6px; right: -4px; top: 0; }
+
 .retro-footer {
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; max-width: 360px; margin-top: 40px; padding: 12px 5px;
@@ -137,11 +140,25 @@ body {
     display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #ff9b13;
 }
 
-.game-header { display: flex; width: 100%; max-width: 480px; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; box-sizing: border-box; }
-.score-tag-retro { font-size: 0.65rem; background: #12213a; padding: 4px 8px; border: 2px dashed #00beff; }
+.game-header { display: flex; width: 100%; max-width: 450px; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 0 5px; box-sizing: border-box; }
+.score-tag-retro { font-size: 0.55rem; background: #12213a; padding: 6px 10px; border: 2px dashed #00beff; color: #00beff; }
 
-.live-turn-console { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 480px; margin-top: 8px; gap: 6px; }
-.turn-highlight-banner { width: 100%; text-align: center; padding: 10px; font-size: 0.85rem; font-weight: bold; background: #12213a; border: 3px solid #ff5252; color: #ffffff; box-shadow: 4px 4px 0px black; box-sizing: border-box; }
+.live-turn-console { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 450px; margin-top: 8px; gap: 6px; }
+
+/* 🌟 ACTIVE TURN PULSE ANIMATION */
+.turn-highlight-banner { 
+    width: 100%; text-align: center; padding: 10px; font-size: 0.85rem; font-weight: bold; 
+    background: #12213a; border: 3px solid #ff5252; color: #ffffff; box-shadow: 4px 4px 0px black; box-sizing: border-box; 
+}
+.turn-highlight-banner.pulse-active {
+    animation: bannerPulse 1.4s infinite ease-in-out;
+}
+@keyframes bannerPulse {
+    0% { transform: scale(1); box-shadow: 4px 4px 0px black; }
+    50% { transform: scale(1.01); box-shadow: 0px 0px 10px rgba(255,255,255,0.2); }
+    100% { transform: scale(1); box-shadow: 4px 4px 0px black; }
+}
+
 .action-logs-footer { font-size: 0.5rem; text-align: center; color: #7f8fa4; }
 
 .toast-popup { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: #c62828; border: 4px solid black; padding: 12px 28px; font-size: 0.7rem; color: white; z-index: 2500; }
@@ -151,7 +168,8 @@ body {
 .pixel-card { background: #0c1626; border: 4px solid #1c3254; padding: 20px; border-radius: 6px; box-shadow: 6px 6px 0px black; text-align: center; width: 100%; box-sizing: border-box;}
 .input-card input { background: #040810; border: 4px solid black; padding: 14px; color: #ff9b13; font-family: 'Press Start 2P', monospace; font-size: 1rem; width: 100%; box-sizing: border-box; text-align: center; outline: none; }
 .upi-box { background: black; padding: 10px; font-size: 0.55rem; color: #8edc3a; margin: 12px 0; border: 2px dashed #1c3254; }
-.spinning-dice { font-size: 3rem; animation: spin 0.8s infinite linear; display: inline-block; }
+.spinning-dice { font-size: 3rem; display: inline-block; animation: diceSpin 1s infinite linear; }
+@keyframes diceSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 #victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(3, 6, 12, 0.96); z-index: 800; display: none; }
 #victory-screen.active { display: flex; }
