@@ -56,7 +56,7 @@ body {
 .pixel-btn.blue { background: linear-gradient(to bottom, var(--pixel-blue-top) 50%, var(--pixel-blue-bot) 50%); color: white; border-color: var(--pixel-blue-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.orange { background: linear-gradient(to bottom, var(--pixel-orange-top) 50%, var(--pixel-orange-bot) 50%); color: white; border-color: var(--pixel-orange-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.red { background: linear-gradient(to bottom, var(--pixel-red-top) 50%, var(--pixel-red-bot) 50%); color: white; border-color: var(--pixel-red-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
-.pixel-btn.grey { background: linear-gradient(to bottom, var(--pixel-grey-top) 50%, var(--pixel-grey-bot) 50%); color: white; border-color: var(--pixel-grey-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
+.pixel-btn.grey { background: linear-gradient(to bottom, var(--pixel-grey-top) 50%, var(--pixel-grey-bot) 50%); color: white; border-color: var(--pixel-grey-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 .pixel-btn:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
@@ -95,13 +95,11 @@ body {
     transition: background-color 0.25s ease;
 }
 
-/* 🟢 LIGHT GREEN TARGET GOAL ROW GLOW */
 .cell.goal-row-glow { 
     background-color: rgba(142, 220, 58, 0.08) !important; 
     box-shadow: inset 0 0 8px rgba(142, 220, 58, 0.25) !important; 
 }
 
-/* 🟠 LIGHT ORANGE START BASE ROW GLOW */
 .cell.start-row-glow { 
     background-color: rgba(255, 155, 19, 0.04) !important; 
     box-shadow: inset 0 0 6px rgba(255, 155, 19, 0.15) !important; 
