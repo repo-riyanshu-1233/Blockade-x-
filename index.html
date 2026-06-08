@@ -84,6 +84,7 @@
     <div id="game-screen" class="screen large-layout">
         <div class="game-header">
             <div class="score-tag-retro" id="identity-tag">YOUR COLOR: --</div>
+            <div class="timer-box" id="match-timer-display">TIME: 30s</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
@@ -93,6 +94,15 @@
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
+            
+            <div id="wall-confirm-panel" class="confirm-panel-wrap hide">
+                <p class="confirm-text">CONFIRM TO PLACE WALL?</p>
+                <div class="confirm-actions">
+                    <button class="pixel-btn green compact" onclick="commitWallPlacement()">CONFIRM</button>
+                    <button class="pixel-btn red compact" onclick="cancelWallPlacement()">CANCEL</button>
+                </div>
+            </div>
+
             <div id="game-live-notice" class="action-logs-footer">REACH THE OPPOSITE GLOW ROW TO WIN!</div>
         </div>
     </div>
@@ -136,14 +146,11 @@
             <p style="font-size: 0.6rem !important; color: #7f8fa4 !important; line-height: 1.6 !important; margin-bottom: 15px !important;">
                 IF YOU LOVED THE EXPERIENCE PLEASE SHOW YOUR LOVE BY DONATING ME, CONSIDER SUPPORTING THE SERVER AND DEV COSTS!.
             </p> 
-            
-            <div class="qr-code-holder" style="background: white !important; padding: 10px !important; width: 140px !important; height: 140px !important; max-width: 140px !important; max-height: 140px !important; margin: 0 auto 10px auto !important; border-radius: 4px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important; box-sizing: border-box !important;">
-                <img src="image/qr.png" alt="UPI QR CODE" style="width: 120px !important; height: 120px !important; max-width: 120px !important; max-height: 120px !important; min-width: 120px !important; min-height: 120px !important; object-fit: contain !important; display: block !important; margin: 0 !important; padding: 0 !important;">
+            <div class="qr-code-holder" style="background: white !important; padding: 10px !important; width: 140px !important; height: 140px !important; max-width: 140px !important; max-height: 140px !important; margin: 0 auto 10px auto !important; border-radius: 4px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important;">
+                <img src="image/qr.png" alt="UPI QR CODE" style="width: 120px !important; height: 120px !important; object-fit: contain !important;">
             </div>
-            
             <div style="font-size: 8px !important; color: #ff9b13 !important; margin-bottom: 15px !important;">[ SCAN UPI QR CODE ]</div>
             <div class="upi-box" id="upi-string-display" style="font-size: 0.6rem !important; word-break: break-all !important;">UPI ID: chauhanriyanshu1233</div>
-            
             <button class="pixel-btn red compact" style="margin-top: 10px !important;" onclick="toggleModal('donation-modal', false)">CLOSE</button>
         </div>
     </div>
