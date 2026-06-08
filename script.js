@@ -8,9 +8,11 @@ let myRole = 'p1';
 let activeTurn = 'p1'; 
 let aiDifficulty = 'medium'; 
 
+let myPlayerName = "PLAYER";
+let opponentPlayerName = "OPPONENT";
+
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
 
-// 🧱 Real-time system trackers for wall count
 let wallInventory = { p1: 10, p2: 10 };
 
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -102,6 +104,16 @@ function connectSandboxHost() {
     });
 }
 
+function submitNameAndFindMatch() {
+    let nameInput = document.getElementById('online-player-name').value.trim();
+    if(nameInput.length === 0) {
+        myPlayerName = "PLAYER";
+    } else {
+        myPlayerName = nameInput.toUpperCase();
+    }
+    startRandomMatchmaking();
+}
+
 function startRandomMatchmaking() {
     gameMode = 'random_match';
     showScreen('matchmaking-screen');
@@ -137,16 +149,27 @@ function startRandomMatchmaking() {
         triggerGameNotice("OPPONENT ENTERED!", true);
         setTimeout(() => { 
             myRole = Math.random() > 0.5 ? 'p1' : 'p2';
-            networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1') });
+            networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1'), hostName: myPlayerName });
             setupFreshMatch(); 
         }, 1000);
     });
 }
 
 function setupNetworkListeners() {
+    networkConnection.on('open', () => {
+        if(gameMode === 'client') {
+            networkConnection.send({ type: 'client-identity', clientName: myPlayerName });
+        }
+    });
+
     networkConnection.on('data', (data) => {
         if(data.type === 'role-assign') {
-            myRole = data.assignedToClient; setupFreshMatch();
+            myRole = data.assignedToClient; 
+            if(data.hostName) opponentPlayerName = data.hostName.toUpperCase();
+            setupFreshMatch();
+        } else if(data.type === 'client-identity') {
+            if(data.clientName) opponentPlayerName = data.clientName.toUpperCase();
+            renderEngine();
         } else if(data.type === 'move') {
             playerPieces[data.player] = data.coordinates; evaluateTurnShiftOffline(false);
         } else if(data.type === 'wall') {
@@ -172,7 +195,6 @@ function setupFreshMatch() {
     activeTurn = 'p1'; 
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
     
-    // 📊 Distribute inventory configurations per match rules
     if(gameMode === 'pass') {
         wallInventory = { p1: 20, p2: 20 };
     } else {
@@ -188,7 +210,6 @@ function setupFreshMatch() {
     resetTurnTimer();
 }
 
-// ⏳ 5-Second Notice Dynamic Engine
 function triggerTimedRuleNotice() {
     const noticeBox = document.getElementById('match-startup-notice');
     const noticeText = document.getElementById('startup-notice-text');
@@ -238,7 +259,6 @@ function renderEngine() {
     if (!board) return; 
     board.innerHTML = '';
 
-    // Update real-time counts into headers
     if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = wallInventory.p1;
     if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = wallInventory.p2;
 
@@ -300,7 +320,6 @@ function handleSmartCellTouch(e, r, c) {
 
     let hasWallsLeft = wallInventory[activeTurn] > 0;
 
-    // ⚡ Direct Instant Execution Logic (Bypassed Confirmation Step)
     if (hasWallsLeft) {
         if (myRole === 'p2') {
             if (y < edgeThreshold && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
@@ -311,7 +330,7 @@ function handleSmartCellTouch(e, r, c) {
             if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
             if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
             if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
-            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
+            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
         }
     }
 
@@ -345,9 +364,15 @@ function updateHeaderIndicator() {
     const identityTag = document.getElementById('identity-tag');
     if (!bottomBanner) return;
 
-    if(gameMode === 'pass') { identityTag.innerText = "PASS & PLAY"; } 
-    else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
-    else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED" : "🔵 YOU: BLUE"; }
+    if(gameMode === 'pass') { 
+        identityTag.innerText = "PASS & PLAY"; 
+    } else if(gameMode === 'ai') { 
+        identityTag.innerText = `YOU vs BOT`; 
+    } else { 
+        let redLabel = (myRole === 'p1') ? myPlayerName : opponentPlayerName;
+        let blueLabel = (myRole === 'p2') ? myPlayerName : opponentPlayerName;
+        identityTag.innerText = `${redLabel} VS ${blueLabel}`; 
+    }
 
     let isMyTurn = (gameMode === 'pass') || (gameMode === 'ai' && activeTurn === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && activeTurn === myRole);
     
@@ -358,9 +383,9 @@ function updateHeaderIndicator() {
             bottomBanner.style.borderColor = activeTurn === 'p1' ? P1_COLOR : P2_COLOR;
         } else {
             if(wallInventory[myRole] <= 0) {
-                bottomBanner.innerText = "YOUR TURN ! OUT OF WALLS (MOVE PIECE)";
+                bottomBanner.innerText = "YOUR TURN ! OUT OF WALLS";
             } else {
-                bottomBanner.innerText = "YOUR TURN ! MOVE OR TAP GAP PLACE";
+                bottomBanner.innerText = "YOUR TURN ! PLACE OR MOVE";
             }
             bottomBanner.style.borderColor = myRole === 'p1' ? P1_COLOR : P2_COLOR;
         }
@@ -369,7 +394,7 @@ function updateHeaderIndicator() {
         if(gameMode === 'pass') {
              bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
         } else {
-             bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : "WAITING FOR OPPONENT...";
+             bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : `⏳ ${opponentPlayerName}'S TURN...`;
         }
         bottomBanner.style.borderColor = "#12213a";
     }
