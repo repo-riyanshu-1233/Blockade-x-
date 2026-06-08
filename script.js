@@ -180,7 +180,6 @@ function setupFreshMatch() {
     renderEngine();
 }
 
-// 🔥 CRITICAL FIX: DYNAMIC VISUAL SYNCHRONIZATION 
 function renderEngine() {
     const board = document.getElementById('game-board');
     board.innerHTML = '';
@@ -215,7 +214,6 @@ function renderEngine() {
                 cell.appendChild(piece);
             }
 
-            // DYNAMIC STYLE OVERRIDES FOR ABSOLUTE SYNC ON MIRRORED SCREENS
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
                 let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
                 vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
