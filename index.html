@@ -18,7 +18,7 @@
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="launchDirectGame('pass')">PASS & PLAY</button>
-            <button class="pixel-btn blue" onclick="launchDirectGame('ai')">VS AI ROBOT 🤖</button>
+            <button class="pixel-btn blue" onclick="showScreen('ai-menu-screen')">VS AI ROBOT 🤖</button>
             <button class="pixel-btn orange" onclick="startRandomMatchmaking()">ONLINE PVP (RANDOM)</button>
             <button class="pixel-btn red" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
@@ -31,6 +31,17 @@
             <div class="footer-right">
                 <div class="money-logo-btn" onclick="toggleModal('donation-modal', true)">🪙</div>
             </div>
+        </div>
+    </div>
+
+    <div id="ai-menu-screen" class="screen">
+        <h2 class="screen-title">BOT DIFFICULTY</h2>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="launchAIGame('easy')">EASY MODE</button>
+            <button class="pixel-btn blue" onclick="launchAIGame('medium')">MEDIUM MODE</button>
+            <button class="pixel-btn orange" onclick="launchAIGame('hard')">HARD MODE</button>
+            <button class="pixel-btn red" onclick="launchAIGame('extreme')">EXTREME MODE 💀</button>
+            <button class="pixel-btn compact grey" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
         </div>
     </div>
 
@@ -72,7 +83,7 @@
 
     <div id="game-screen" class="screen large-layout">
         <div class="game-header">
-            <div class="score-tag-retro">MATRIX: 9X9</div>
+            <div class="score-tag-retro" id="identity-tag">YOUR COLOR: --</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
@@ -82,7 +93,7 @@
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
-            <div id="game-live-notice" class="action-logs-footer">REACH THE GREEN GLOW ROW TO WIN!</div>
+            <div id="game-live-notice" class="action-logs-footer">REACH THE OPPOSITE GLOW ROW TO WIN!</div>
         </div>
     </div>
 
@@ -120,20 +131,20 @@
     </div>
 
     <div id="donation-modal" class="modal-overlay">
-        <div class="modal-card pixel-card" style="border-color: #ff9b13; max-width: 320px;">
-            <h2 style="color: #ff9b13; font-size: 1rem; margin-bottom: 10px;">DONATION BOX</h2>
-            <p style="font-size: 0.6rem; color: #7f8fa4; line-height: 1.6; margin-bottom: 15px;">
+        <div class="modal-card pixel-card" style="border-color: #ff9b13 !important; max-width: 320px !important; width: 90% !important; margin: auto !important;">
+            <h2 style="color: #ff9b13 !important; font-size: 1rem !important; margin-bottom: 10px !important;">DONATION BOX</h2>
+            <p style="font-size: 0.6rem !important; color: #7f8fa4 !important; line-height: 1.6 !important; margin-bottom: 15px !important;">
                 IF YOU LOVED THE EXPERIENCE PLEASE SHOW YOUR LOVE BY DONATING ME, CONSIDER SUPPORTING THE SERVER AND DEV COSTS!.
             </p> 
             
-            <div class="qr-code-holder" style="background: white; padding: 10px; width: 140px; height: 140px; margin: 0 auto 10px auto; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 8px rgba(0,0,0,0.2);">
-                <img src="null" alt="null" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+            <div class="qr-code-holder" style="background: white !important; padding: 10px !important; width: 140px !important; height: 140px !important; max-width: 140px !important; max-height: 140px !important; margin: 0 auto 10px auto !important; border-radius: 4px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important; box-sizing: border-box !important;">
+                <img src="image/qr.png" alt="UPI QR CODE" style="width: 120px !important; height: 120px !important; max-width: 120px !important; max-height: 120px !important; min-width: 120px !important; min-height: 120px !important; object-fit: contain !important; display: block !important; margin: 0 !important; padding: 0 !important;">
             </div>
             
-            <div style="font-size: 8px; color: #ff9b13; margin-bottom: 15px;">[ DONATE ON UPI ID ]</div>
-            <div class="upi-box" id="upi-string-display" style="font-size: 0.6rem; word-break: break-all;">UPI ID: chauhanriyanshu1233</div>
+            <div style="font-size: 8px !important; color: #ff9b13 !important; margin-bottom: 15px !important;">[ SCAN UPI QR CODE ]</div>
+            <div class="upi-box" id="upi-string-display" style="font-size: 0.6rem !important; word-break: break-all !important;">UPI ID: chauhanriyanshu1233</div>
             
-            <button class="pixel-btn red compact" style="margin-top: 10px;" onclick="toggleModal('donation-modal', false)">CLOSE</button>
+            <button class="pixel-btn red compact" style="margin-top: 10px !important;" onclick="toggleModal('donation-modal', false)">CLOSE</button>
         </div>
     </div>
 
