@@ -129,9 +129,9 @@ body {
 }
 @keyframes wallFade { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 
-/* Wall bounds aligned cleanly with cell offsets */
-.visual-wall.h-wall { width: 100%; height: 6px; bottom: -4px; left: 0; }
-.visual-wall.v-wall { height: 100%; width: 6px; right: -4px; top: 0; }
+/* Wall layout defaults - absolute control handles are now dynamically overriden in JS */
+.visual-wall.h-wall { width: 100%; height: 6px; left: 0; }
+.visual-wall.v-wall { height: 100%; width: 6px; top: 0; }
 
 .retro-footer {
     display: flex; justify-content: space-between; align-items: center;
