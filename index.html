@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Blockade X - Red vs Blue</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -82,8 +82,19 @@
     </div>
 
     <div id="game-screen" class="screen large-layout">
+        
+        <div id="match-startup-notice" class="hide" style="position: absolute; top: 12%; left: 50%; transform: translateX(-50%); background: #0c1626; border: 4px solid #ff9b13; padding: 12px; width: 85%; max-width: 400px; text-align: center; z-index: 3000; box-shadow: 6px 6px 0px #000;">
+            <h3 style="color: #ff9b13; margin: 0 0 6px 0; font-size: 10px; font-family: 'Press Start 2P', monospace;">⚠️ MATCH RULES</h3>
+            <p id="startup-notice-text" style="color: #ffffff; font-size: 7px; line-height: 1.6; margin: 0; font-family: 'Press Start 2P', monospace; white-space: pre-line;"></p>
+        </div>
+
         <div class="game-header">
             <div class="score-tag-retro" id="identity-tag">YOUR COLOR: --</div>
+            
+            <div id="wall-counter-display" style="font-size: 7px; color: #ffffff; background: #12213a; padding: 6px 10px; border: 2px dashed #ff9b13;">
+                R: <span id="p1-walls-left">10</span> | B: <span id="p2-walls-left">10</span>
+            </div>
+
             <div class="timer-box" id="match-timer-display">TIME: 30s</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
@@ -94,15 +105,6 @@
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
-            
-            <div id="wall-confirm-panel" class="confirm-panel-wrap hide">
-                <p class="confirm-text">CONFIRM TO PLACE WALL?</p>
-                <div class="confirm-actions">
-                    <button class="pixel-btn green compact" onclick="commitWallPlacement()">CONFIRM</button>
-                    <button class="pixel-btn red compact" onclick="cancelWallPlacement()">CANCEL</button>
-                </div>
-            </div>
-
             <div id="game-live-notice" class="action-logs-footer">REACH THE OPPOSITE GLOW ROW TO WIN!</div>
         </div>
     </div>
