@@ -8,11 +8,11 @@ let myRole = 'p1';
 let activeTurn = 'p1'; 
 let aiDifficulty = 'medium'; 
 
+// 👤 Global Identity Handles 
 let myPlayerName = "PLAYER";
 let opponentPlayerName = "OPPONENT";
 
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
-
 let wallInventory = { p1: 10, p2: 10 };
 
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -69,6 +69,13 @@ function generate5BitCode() {
     return text;
 }
 
+// Sandbox Registration Sequence
+function submitSandboxHostAndGenerate() {
+    let hostInput = document.getElementById('sandbox-host-name').value.trim();
+    myPlayerName = hostInput.length === 0 ? "HOST" : hostInput.toUpperCase();
+    initiateSandboxHost();
+}
+
 function initiateSandboxHost() {
     gameMode = 'host'; myRole = 'p1'; 
     showScreen('sandbox-host-screen');
@@ -82,13 +89,16 @@ function initiateSandboxHost() {
         triggerGameNotice("SANDBOX LINKED SUCCESS!", true);
         setTimeout(() => { 
             myRole = Math.random() > 0.5 ? 'p1' : 'p2';
-            networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1') });
+            networkConnection.send({ type: 'role-assign', assignedToClient: (myRole === 'p1' ? 'p2' : 'p1'), hostName: myPlayerName });
             setupFreshMatch(); 
         }, 1000);
     });
 }
 
 function connectSandboxHost() {
+    let clientInput = document.getElementById('sandbox-client-name').value.trim();
+    myPlayerName = clientInput.length === 0 ? "GUEST" : clientInput.toUpperCase();
+
     const targetCode = document.getElementById('sandbox-input-code').value.trim().toUpperCase();
     if(targetCode.length !== 5) { triggerGameNotice("ENTER EXACT 5 VALUE CODE"); return; }
     gameMode = 'client'; 
@@ -106,11 +116,7 @@ function connectSandboxHost() {
 
 function submitNameAndFindMatch() {
     let nameInput = document.getElementById('online-player-name').value.trim();
-    if(nameInput.length === 0) {
-        myPlayerName = "PLAYER";
-    } else {
-        myPlayerName = nameInput.toUpperCase();
-    }
+    myPlayerName = nameInput.length === 0 ? "PLAYER" : nameInput.toUpperCase();
     startRandomMatchmaking();
 }
 
@@ -224,9 +230,7 @@ function triggerTimedRuleNotice() {
     }
 
     noticeBox.classList.remove('hide');
-    setTimeout(() => {
-        noticeBox.classList.add('hide');
-    }, 5000);
+    setTimeout(() => { noticeBox.classList.add('hide'); }, 5000);
 }
 
 function resetTurnTimer() {
@@ -240,7 +244,6 @@ function resetTurnTimer() {
         
         if(timeLeft <= 0) {
             clearInterval(turnTimer);
-            
             let isOnlineMatch = (gameMode === 'host' || gameMode === 'client');
             if(isOnlineMatch && activeTurn === myRole) {
                 networkConnection.send({ type: 'timeout' });
@@ -333,7 +336,6 @@ function handleSmartCellTouch(e, r, c) {
             if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
         }
     }
-
     processPieceMovement(r, c);
 }
 
@@ -427,6 +429,7 @@ function getShortestPathDistance(startPos, targetRow) {
     return Infinity;
 }
 
+// Validation Route Check
 function hasValidPath(startPos, targetRow) { return getShortestPathDistance(startPos, targetRow) !== Infinity; }
 
 function processPieceMovement(tarR, tarC) {
@@ -522,7 +525,6 @@ function execute4LevelEngineAI() {
 
     if (!actionTaken) {
         let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
-        
         if(aiDifficulty === 'easy') { validSteps.sort(() => Math.random() - 0.5); } 
         else {
             validSteps.sort((a, b) => {
