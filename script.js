@@ -1,4 +1,4 @@
-const GRID_SIZE = 9; 
+const GRID_SIZE = 8; 
 
 const P1_COLOR = '#ff5252'; 
 const P2_COLOR = '#00beff'; 
@@ -8,20 +8,28 @@ let myRole = 'p1';
 let activeTurn = 'p1'; 
 let aiDifficulty = 'medium'; 
 
-let playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
+let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
 
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
+// ⏱️ TIMER SYSTEM VARIABLES
+let turnTimer = null;
+let timeLeft = 30;
+
+// 🛠️ WALL CONFIRMATION MEMORY
+let pendingWall = null; 
+
 let peerNode = null;
 let networkConnection = null;
 let firecrackerInterval = null;
-const cloudBrokerPrefix = "BLKD-X9-"; 
+const cloudBrokerPrefix = "BLKD-X8-"; 
 
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     if(screenId !== 'victory-screen') stopCelebrationCanvas();
+    if(screenId !== 'game-screen') clearInterval(turnTimer); // Stop timer if out of game
 }
 
 function toggleModal(modalId, isOpen) {
@@ -38,25 +46,19 @@ function triggerGameNotice(msg, isPositive = false) {
     else toast.classList.remove('green-alert');
 
     toast.classList.remove('hide');
-    setTimeout(() => { toast.classList.add('hide'); }, 2000);
+    setTimeout(() => { if(toast) toast.classList.add('hide'); }, 2000);
 }
 
 function launchDirectGame(mode) {
-    gameMode = mode;
-    myRole = 'p1'; 
-    setupFreshMatch();
+    gameMode = mode; myRole = 'p1'; setupFreshMatch();
 }
 
 function launchAIGame(diff) {
-    gameMode = 'ai';
-    aiDifficulty = diff;
-    myRole = 'p1'; 
-    setupFreshMatch();
+    gameMode = 'ai'; aiDifficulty = diff; myRole = 'p1'; setupFreshMatch();
 }
 
 function generate5BitCode() {
-    let text = "";
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let text = ""; const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     for (let i = 0; i < 5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
     return text;
 }
@@ -102,12 +104,10 @@ function startRandomMatchmaking() {
     document.getElementById('match-status-text').innerText = "SEEKING OPPONENT...";
     
     const lobbyRandomTicket = Math.floor(Math.random() * 20) + 100; 
-    peerNode = new Peer(cloudBrokerPrefix + "GLOBAL-POOL-" + lobbyRandomTicket);
+    peerNode = new Peer(cloudBrokerPrefix + "GLOBAL-8X8-" + lobbyRandomTicket);
 
     peerNode.on('open', () => {
-        let sweepId = 100;
-        let connected = false;
-
+        let sweepId = 100; let connected = false;
         function probeNextLobbySlot() {
             if (sweepId > 120 || connected) {
                 if(!connected) { document.getElementById('match-status-text').innerText = "WAITING POOL"; }
@@ -115,28 +115,21 @@ function startRandomMatchmaking() {
             }
             if (sweepId === lobbyRandomTicket) { sweepId++; probeNextLobbySlot(); return; }
 
-            let proxyConnection = peerNode.connect(cloudBrokerPrefix + "GLOBAL-POOL-" + sweepId);
+            let proxyConnection = peerNode.connect(cloudBrokerPrefix + "GLOBAL-8X8-" + sweepId);
             let joinWatchdog = setTimeout(() => {
-                proxyConnection.close();
-                sweepId++;
-                probeNextLobbySlot();
+                proxyConnection.close(); sweepId++; probeNextLobbySlot();
             }, 500);
 
             proxyConnection.on('open', () => {
-                clearTimeout(joinWatchdog);
-                connected = true;
-                gameMode = 'client'; 
-                networkConnection = proxyConnection;
-                setupNetworkListeners();
+                clearTimeout(joinWatchdog); connected = true; gameMode = 'client'; 
+                networkConnection = proxyConnection; setupNetworkListeners();
             });
         }
         probeNextLobbySlot();
     });
 
     peerNode.on('connection', (incomingConn) => {
-        gameMode = 'host'; 
-        networkConnection = incomingConn;
-        setupNetworkListeners();
+        gameMode = 'host'; networkConnection = incomingConn; setupNetworkListeners();
         triggerGameNotice("OPPONENT ENTERED!", true);
         setTimeout(() => { 
             myRole = Math.random() > 0.5 ? 'p1' : 'p2';
@@ -149,11 +142,9 @@ function startRandomMatchmaking() {
 function setupNetworkListeners() {
     networkConnection.on('data', (data) => {
         if(data.type === 'role-assign') {
-            myRole = data.assignedToClient;
-            setupFreshMatch();
+            myRole = data.assignedToClient; setupFreshMatch();
         } else if(data.type === 'move') {
-            playerPieces[data.player] = data.coordinates;
-            evaluateTurnShiftOffline(false);
+            playerPieces[data.player] = data.coordinates; evaluateTurnShiftOffline(false);
         } else if(data.type === 'wall') {
             if(data.wallType === 'h') hWalls[data.r][data.c] = data.color;
             else vWalls[data.r][data.c] = data.color;
@@ -161,23 +152,42 @@ function setupNetworkListeners() {
         }
     });
     networkConnection.on('close', () => {
-        triggerGameNotice("OPPONENT LEFT ARENA!");
-        confirmExit();
+        triggerGameNotice("OPPONENT LEFT ARENA!"); confirmExit();
     });
 }
 
 function disconnectPeer() {
-    if(peerNode) peerNode.destroy();
-    showScreen('menu-screen');
+    if(peerNode) peerNode.destroy(); showScreen('menu-screen');
 }
 
 function setupFreshMatch() {
     activeTurn = 'p1';
-    playerPieces = { p1: { r: 8, c: 4 }, p2: { r: 0, c: 4 } };
+    playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+    pendingWall = null;
     showScreen('game-screen');
+    resetTurnTimer();
     renderEngine();
+}
+
+// ⏱️ TIMER MANAGEMENT ENGINE
+function resetTurnTimer() {
+    clearInterval(turnTimer);
+    timeLeft = 30;
+    document.getElementById('match-timer-display').innerText = `TIME: ${timeLeft}s`;
+
+    turnTimer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('match-timer-display').innerText = `TIME: ${timeLeft}s`;
+        
+        if(timeLeft <= 0) {
+            clearInterval(turnTimer);
+            triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
+            cancelWallPlacement(); // Reset any unconfirmed walls on timeout
+            evaluateTurnShiftOffline(true);
+        }
+    }, 1000);
 }
 
 function renderEngine() {
@@ -191,14 +201,13 @@ function renderEngine() {
             let c = (myRole === 'p2') ? (GRID_SIZE - 1 - displayC) : displayC;
 
             let cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.id = `cell-${r}-${c}`;
+            cell.className = 'cell'; cell.id = `cell-${r}-${c}`;
             
             if (myRole === 'p1') {
                 if (r === 0) cell.classList.add('goal-row-glow'); 
-                if (r === 8) cell.classList.add('start-row-glow'); 
+                if (r === GRID_SIZE - 1) cell.classList.add('start-row-glow'); 
             } else if (myRole === 'p2') {
-                if (r === 8) cell.classList.add('goal-row-glow'); 
+                if (r === GRID_SIZE - 1) cell.classList.add('goal-row-glow'); 
                 if (r === 0) cell.classList.add('start-row-glow'); 
             }
 
@@ -214,6 +223,7 @@ function renderEngine() {
                 cell.appendChild(piece);
             }
 
+            // Render Established Walls
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
                 let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
                 vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
@@ -226,6 +236,23 @@ function renderEngine() {
                 if(myRole === 'p2') { vVWall.style.left = '-4px'; } else { vVWall.style.right = '-4px'; }
                 cell.appendChild(vVWall);
             }
+
+            // 🛠️ Render Preview of Pending Wall (Semi-transparent)
+            if(pendingWall && pendingWall.r === r && pendingWall.c === c) {
+                let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
+                if(pendingWall.type === 'h' && r < GRID_SIZE - 1) {
+                    let previewWall = document.createElement('div'); previewWall.className = 'visual-wall h-wall';
+                    previewWall.style.backgroundColor = activeColor; previewWall.style.opacity = '0.5';
+                    if(myRole === 'p2') { previewWall.style.top = '-4px'; } else { previewWall.style.bottom = '-4px'; }
+                    cell.appendChild(previewWall);
+                } else if(pendingWall.type === 'v' && c < GRID_SIZE - 1) {
+                    let previewWall = document.createElement('div'); previewWall.className = 'visual-wall v-wall';
+                    previewWall.style.backgroundColor = activeColor; previewWall.style.opacity = '0.5';
+                    if(myRole === 'p2') { previewWall.style.left = '-4px'; } else { previewWall.style.right = '-4px'; }
+                    cell.appendChild(previewWall);
+                }
+            }
+
             board.appendChild(cell);
         }
     }
@@ -235,43 +262,73 @@ function renderEngine() {
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
+    if(pendingWall) return; // Freeze actions until confirmation panel is resolved
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left; 
-    const y = e.clientY - rect.top;
-    const edgeThreshold = rect.width * 0.32; 
-
-    let wallPlacedStatus = false;
+    const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+    const edgeThreshold = rect.width * 0.35; 
 
     if (myRole === 'p2') {
-        if (y < edgeThreshold) { 
-            if(r < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('h', r, c); if(wallPlacedStatus) return; } 
-        }
-        if (y > (rect.height - edgeThreshold)) { 
-            if(r > 0) { wallPlacedStatus = attemptWallPlacement('h', r - 1, c); if(wallPlacedStatus) return; } 
-        }
-        if (x < edgeThreshold) { 
-            if(c < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('v', r, c); if(wallPlacedStatus) return; } 
-        }
-        if (x > (rect.width - edgeThreshold)) { 
-            if(c > 0) { wallPlacedStatus = attemptWallPlacement('v', r, c - 1); if(wallPlacedStatus) return; } 
-        }
+        if (y < edgeThreshold && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
+        if (y > (rect.height - edgeThreshold) && r > 0) { triggerWallPreview('h', r - 1, c); return; }
+        if (x < edgeThreshold && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c); return; }
+        if (x > (rect.width - edgeThreshold) && c > 0) { triggerWallPreview('v', r, c - 1); return; }
     } else {
-        if (y < edgeThreshold) { 
-            if(r > 0) { wallPlacedStatus = attemptWallPlacement('h', r - 1, c); if(wallPlacedStatus) return; } 
-        }
-        if (y > (rect.height - edgeThreshold)) { 
-            if(r < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('h', r, c); if(wallPlacedStatus) return; } 
-        }
-        if (x < edgeThreshold) { 
-            if(c > 0) { wallPlacedStatus = attemptWallPlacement('v', r, c - 1); if(wallPlacedStatus) return; } 
-        }
-        if (x > (rect.width - edgeThreshold)) { 
-            if(c < GRID_SIZE - 1) { wallPlacedStatus = attemptWallPlacement('v', r, c); if(wallPlacedStatus) return; } 
-        }
+        if (y < edgeThreshold && r > 0) { triggerWallPreview('h', r - 1, c); return; }
+        if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
+        if (x < edgeThreshold && c > 0) { triggerWallPreview('v', r, c - 1); return; }
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c); return; }
     }
 
     processPieceMovement(r, c);
+}
+
+// 🛠️ WALL PREVIEW & CONFIRMATION SWITCH LOGIC
+function triggerWallPreview(type, r, c) {
+    if(type === 'h' && hWalls[r][c] !== null) return;
+    if(type === 'v' && vWalls[r][c] !== null) return;
+
+    pendingWall = { type: type, r: r, c: c };
+    renderEngine(); // Refresh board to display preview
+
+    // Toggle UI banners to confirmation view
+    document.getElementById('bottom-turn-banner').classList.add('hide');
+    document.getElementById('wall-confirm-panel').classList.remove('hide');
+}
+
+function commitWallPlacement() {
+    if(!pendingWall) return;
+    let type = pendingWall.type; let r = pendingWall.r; let c = pendingWall.c;
+    pendingWall = null; // Clear staging area
+
+    // Restore standard banners
+    document.getElementById('wall-confirm-panel').classList.add('hide');
+    document.getElementById('bottom-turn-banner').classList.remove('hide');
+
+    let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
+    
+    if(type === 'h') hWalls[r][c] = activeColor; 
+    else vWalls[r][c] = activeColor;
+
+    // Check if path is legally open
+    if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
+        if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
+        triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
+        renderEngine();
+        return;
+    }
+
+    if(gameMode === 'host' || gameMode === 'client') {
+        networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
+    }
+    evaluateTurnShiftOffline(true);
+}
+
+function cancelWallPlacement() {
+    pendingWall = null;
+    document.getElementById('wall-confirm-panel').classList.add('hide');
+    document.getElementById('bottom-turn-banner').classList.remove('hide');
+    renderEngine();
 }
 
 function updateHeaderIndicator() {
@@ -329,24 +386,6 @@ function getShortestPathDistance(startPos, targetRow) {
 
 function hasValidPath(startPos, targetRow) { return getShortestPathDistance(startPos, targetRow) !== Infinity; }
 
-function attemptWallPlacement(type, r, c) {
-    let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
-    
-    if(type === 'h') { if(hWalls[r][c] !== null) return false; hWalls[r][c] = activeColor; } 
-    else { if(vWalls[r][c] !== null) return false; vWalls[r][c] = activeColor; }
-
-    if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
-        if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
-        triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!"); return false;
-    }
-
-    if(gameMode === 'host' || gameMode === 'client') {
-        networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
-    }
-    evaluateTurnShiftOffline(true);
-    return true;
-}
-
 function processPieceMovement(tarR, tarC) {
     let loc = playerPieces[activeTurn];
     let opp = playerPieces[(activeTurn === 'p1') ? 'p2' : 'p1'];
@@ -389,15 +428,17 @@ function paintBoardOnVictory(winnerColor) {
 
 function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     renderEngine();
-    if(playerPieces.p1.r === 0) { paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("p1"); }, 400); return; }
-    if(playerPieces.p2.r === GRID_SIZE - 1) { paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("p2"); }, 400); return; }
+    if(playerPieces.p1.r === 0) { clearInterval(turnTimer); paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("p1"); }, 400); return; }
+    if(playerPieces.p2.r === GRID_SIZE - 1) { clearInterval(turnTimer); paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("p2"); }, 400); return; }
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
-    updateHeaderIndicator();
+    resetTurnTimer(); // Reset countdown clock for the next player
+    
     if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
 
 function launchVictorySequence(winningRole) {
+    clearInterval(turnTimer);
     const titleHeader = document.getElementById('victory-header-status');
     const subtitleText = document.getElementById('winner-declaration-text');
     const shareBtn = document.getElementById('share-results-btn');
@@ -406,29 +447,13 @@ function launchVictorySequence(winningRole) {
     let localPlayerWon = (gameMode === 'pass') || (gameMode === 'ai' && winningRole === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && myRole === winningRole);
 
     if (localPlayerWon) {
-        titleHeader.innerText = "VICTORY!";
-        titleHeader.style.color = "#8edc3a";
-        cardBox.style.borderColor = "#8edc3a";
-        shareBtn.style.display = "inline-block";
-        
-        if (gameMode === 'pass') {
-            subtitleText.innerText = winningRole === 'p1' ? "CONGRATULATIONS RED PLAYER! YOU WON!" : "CONGRATULATIONS BLUE PLAYER! YOU WON!";
-        } else {
-            subtitleText.innerText = "CONGRATULATIONS! YOU DEFEATED YOUR OPPONENT!";
-        }
-        subtitleText.style.color = "#8edc3a";
-        showScreen('victory-screen'); 
-        startCelebrationCanvas(); 
+        titleHeader.innerText = "VICTORY!"; titleHeader.style.color = "#8edc3a"; cardBox.style.borderColor = "#8edc3a"; shareBtn.style.display = "inline-block";
+        if (gameMode === 'pass') { subtitleText.innerText = winningRole === 'p1' ? "CONGRATULATIONS RED PLAYER! YOU WON!" : "CONGRATULATIONS BLUE PLAYER! YOU WON!"; } 
+        else { subtitleText.innerText = "CONGRATULATIONS! YOU DEFEATED YOUR OPPONENT!"; }
+        subtitleText.style.color = "#8edc3a"; showScreen('victory-screen'); startCelebrationCanvas(); 
     } else {
-        titleHeader.innerText = "DEFEAT!";
-        titleHeader.style.color = "#ff5252";
-        cardBox.style.borderColor = "#ff5252";
-        shareBtn.style.display = "none"; 
-        
-        subtitleText.innerText = "LOSE! BETTER LUCK NEXT TIME";
-        subtitleText.style.color = "#ff5252";
-        showScreen('victory-screen');
-        stopCelebrationCanvas(); 
+        titleHeader.innerText = "DEFEAT!"; titleHeader.style.color = "#ff5252"; cardBox.style.borderColor = "#ff5252"; shareBtn.style.display = "none"; 
+        subtitleText.innerText = "LOSE! BETTER LUCK NEXT TIME"; subtitleText.style.color = "#ff5252"; showScreen('victory-screen'); stopCelebrationCanvas(); 
     }
 }
 
@@ -455,9 +480,8 @@ function execute4LevelEngineAI() {
     if (!actionTaken) {
         let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
         
-        if(aiDifficulty === 'easy') {
-            validSteps.sort(() => Math.random() - 0.5);
-        } else {
+        if(aiDifficulty === 'easy') { validSteps.sort(() => Math.random() - 0.5); } 
+        else {
             validSteps.sort((a, b) => {
                 let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
                 let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
@@ -516,4 +540,9 @@ function shareVictoryTray() {
     else { navigator.clipboard.writeText(shareTemplate); triggerGameNotice("LINK SAVED TO CLIPBOARD!", true); }
 }
 
-function confirmExit() { if(peerNode) peerNode.destroy(); stopCelebrationCanvas(); showScreen('menu-screen'); }
+function confirmExit() { 
+    clearInterval(turnTimer); 
+    if(peerNode) peerNode.destroy(); 
+    stopCelebrationCanvas(); 
+    showScreen('menu-screen'); 
+}
