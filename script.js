@@ -6,17 +6,16 @@ const P2_COLOR = '#00beff';
 let gameMode = 'pass'; 
 let myRole = 'p1';       
 let activeTurn = 'p1'; 
+let aiDifficulty = 'medium'; 
 
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
-
-// 🧱 Wall inventory storage updated on match launch
-let wallInventory = { p1: 10, p2: 10 };
 
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
 let turnTimer = null;
 let timeLeft = 30;
+let pendingWall = null; 
 
 let peerNode = null;
 let networkConnection = null;
@@ -27,10 +26,7 @@ function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     if(screenId !== 'victory-screen') stopCelebrationCanvas();
-    if(screenId !== 'game-screen') {
-        clearInterval(turnTimer);
-        document.getElementById('match-startup-notice').classList.add('hide');
-    }
+    if(screenId !== 'game-screen') clearInterval(turnTimer); 
 }
 
 function toggleModal(modalId, isOpen) {
@@ -52,6 +48,10 @@ function triggerGameNotice(msg, isPositive = false) {
 
 function launchDirectGame(mode) {
     gameMode = mode; myRole = 'p1'; setupFreshMatch();
+}
+
+function launchAIGame(diff) {
+    gameMode = 'ai'; aiDifficulty = diff; myRole = 'p1'; setupFreshMatch();
 }
 
 function generate5BitCode() {
@@ -141,15 +141,16 @@ function setupNetworkListeners() {
         if(data.type === 'role-assign') {
             myRole = data.assignedToClient; setupFreshMatch();
         } else if(data.type === 'move') {
-            playerPieces[data.player] = data.coordinates; evaluateTurnShiftOffline();
+            playerPieces[data.player] = data.coordinates; evaluateTurnShiftOffline(false);
         } else if(data.type === 'wall') {
             if(data.wallType === 'h') hWalls[data.r][data.c] = data.color;
             else vWalls[data.r][data.c] = data.color;
-            wallInventory[data.player]--; 
-            evaluateTurnShiftOffline();
+            evaluateTurnShiftOffline(false);
         } else if(data.type === 'timeout') {
+            // ⏱️ Synchronized execution when opponent times out
             triggerGameNotice("⚠️ OPPONENT TIMED OUT! YOUR TURN");
-            evaluateTurnShiftOffline();
+            cancelWallPlacement();
+            evaluateTurnShiftOffline(false);
         }
     });
     networkConnection.on('close', () => {
@@ -162,41 +163,14 @@ function disconnectPeer() {
 }
 
 function setupFreshMatch() {
-    activeTurn = 'p1'; 
+    activeTurn = 'p1'; // Game ALWAYS starts with p1 (Red)
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
-    
-    // 🧱 Configurable Mode Inventory Limit Tweak
-    if(gameMode === 'pass') {
-        wallInventory = { p1: 20, p2: 20 };
-    } else {
-        wallInventory = { p1: 10, p2: 10 };
-    }
-
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
-    
+    pendingWall = null;
     showScreen('game-screen');
-    triggerTimedRuleNotice(); // Launch dynamic rule message box
     resetTurnTimer();
     renderEngine();
-}
-
-// 📢 Dynamic 5-Second Notice Engine
-function triggerTimedRuleNotice() {
-    const noticeBox = document.getElementById('match-startup-notice');
-    const noticeText = document.getElementById('startup-notice-text');
-    if(!noticeBox || !noticeText) return;
-
-    if(gameMode === 'pass') {
-        noticeText.innerText = "LOCAL PASS & PLAY MODE ACTIVE.\n\nEACH PLAYER GETS 20 WALLS TOTAL.\n\nWATCH YOUR STEPS REREFUNDS OR RETURNING IS FORBIDDEN!";
-    } else {
-        noticeText.innerText = "COMPETITIVE ONLINE ARENA ACTIVE.\n\nYOU ONLY GET 10 WALLS TOTAL FOR STRATEGY.\n\nWATCH YOUR STEPS, NO STEPS CAN BE RETURNED!";
-    }
-
-    noticeBox.classList.remove('hide');
-    setTimeout(() => {
-        noticeBox.classList.add('hide');
-    }, 5000);
 }
 
 function resetTurnTimer() {
@@ -210,15 +184,18 @@ function resetTurnTimer() {
         
         if(timeLeft <= 0) {
             clearInterval(turnTimer);
+            cancelWallPlacement(); 
             
+            // If it's my turn and I timeout, notify the other player over network
             let isOnlineMatch = (gameMode === 'host' || gameMode === 'client');
             if(isOnlineMatch && activeTurn === myRole) {
                 networkConnection.send({ type: 'timeout' });
                 triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
-                evaluateTurnShiftOffline();
+                evaluateTurnShiftOffline(true);
             } else if (!isOnlineMatch) {
+                // Pass & Play or AI timeout fallback
                 triggerGameNotice("⚠️ TIME OUT! TURN SKIPPED");
-                evaluateTurnShiftOffline();
+                evaluateTurnShiftOffline(true);
             }
         }
     }, 1000);
@@ -228,9 +205,6 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     if (!board) return; 
     board.innerHTML = '';
-
-    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = wallInventory.p1;
-    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = wallInventory.p2;
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
@@ -249,7 +223,7 @@ function renderEngine() {
                 if (r === 0) cell.classList.add('start-row-glow'); 
             }
 
-            cell.onclick = (event) => handleSmartGridIntersectionTap(event, r, c);
+            cell.onclick = (event) => handleSmartCellTouch(event, r, c);
 
             if(playerPieces.p1.r === r && playerPieces.p1.c === c) {
                 let piece = document.createElement('div');
@@ -274,63 +248,91 @@ function renderEngine() {
                 cell.appendChild(vVWall);
             }
 
+            if(pendingWall && pendingWall.r === r && pendingWall.c === c) {
+                let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
+                if(pendingWall.type === 'h' && r < GRID_SIZE - 1) {
+                    let previewWall = document.createElement('div'); previewWall.className = 'visual-wall h-wall';
+                    previewWall.style.backgroundColor = activeColor; previewWall.style.opacity = '0.5';
+                    if(myRole === 'p2') { previewWall.style.top = '-4px'; } else { previewWall.style.bottom = '-4px'; }
+                    cell.appendChild(previewWall);
+                } else if(pendingWall.type === 'v' && c < GRID_SIZE - 1) {
+                    let previewWall = document.createElement('div'); previewWall.className = 'visual-wall v-wall';
+                    previewWall.style.backgroundColor = activeColor; previewWall.style.opacity = '0.5';
+                    if(myRole === 'p2') { previewWall.style.left = '-4px'; } else { previewWall.style.right = '-4px'; }
+                    cell.appendChild(previewWall);
+                }
+            }
+
             board.appendChild(cell);
         }
     }
     updateHeaderIndicator();
 }
 
-// 🧱 Direct Instant Grid Edge Tapping Engine (No Confirmation Screen)
-function handleSmartGridIntersectionTap(e, r, c) {
+function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
+    if(gameMode === 'ai' && activeTurn === 'p2') return;
+    if(pendingWall) return; 
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-    
-    // 🔲 Gaps space size tuning (Tapping edge activates wall insertion)
-    const edgeThickness = rect.width * 0.28; 
+    const edgeThreshold = rect.width * 0.35; 
 
-    let hasWallsLeft = wallInventory[activeTurn] > 0;
-
-    if (hasWallsLeft) {
-        if (myRole === 'p2') {
-            if (y < edgeThickness && r < GRID_SIZE - 1) { executeDirectWallPlacement('h', r, c); return; }
-            if (y > (rect.height - edgeThickness) && r > 0) { executeDirectWallPlacement('h', r - 1, c); return; }
-            if (x < edgeThickness && c < GRID_SIZE - 1) { executeDirectWallPlacement('v', r, c); return; }
-            if (x > (rect.width - edgeThickness) && c > 0) { executeDirectWallPlacement('v', r, c - 1); return; }
-        } else {
-            if (y < edgeThickness && r > 0) { executeDirectWallPlacement('h', r - 1, c); return; }
-            if (y > (rect.height - edgeThickness) && r < GRID_SIZE - 1) { executeDirectWallPlacement('h', r, c); return; }
-            if (x < edgeThickness && c > 0) { executeDirectWallPlacement('v', r, c - 1); return; }
-            if (x > (rect.width - edgeThickness) && c < GRID_SIZE - 1) { executeDirectWallPlacement('v', r, c - 1); return; }
-        }
+    if (myRole === 'p2') {
+        if (y < edgeThreshold && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
+        if (y > (rect.height - edgeThreshold) && r > 0) { triggerWallPreview('h', r - 1, c); return; }
+        if (x < edgeThreshold && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c); return; }
+        if (x > (rect.width - edgeThreshold) && c > 0) { triggerWallPreview('v', r, c - 1); return; }
+    } else {
+        if (y < edgeThreshold && r > 0) { triggerWallPreview('h', r - 1, c); return; }
+        if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { triggerWallPreview('h', r, c); return; }
+        if (x < edgeThreshold && c > 0) { triggerWallPreview('v', r, c - 1); return; }
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { triggerWallPreview('v', r, c - 1); return; }
     }
 
-    // Direct piece move execution if edge gaps are untouched
     processPieceMovement(r, c);
 }
 
-// ⚡ Instant Wall Insertion System (Replaces Confirm Mechanism)
-function executeDirectWallPlacement(type, r, c) {
+function triggerWallPreview(type, r, c) {
     if(type === 'h' && hWalls[r][c] !== null) return;
     if(type === 'v' && vWalls[r][c] !== null) return;
 
+    pendingWall = { type: type, r: r, c: c };
+    renderEngine(); 
+
+    document.getElementById('bottom-turn-banner').classList.add('hide');
+    document.getElementById('wall-confirm-panel').classList.remove('hide');
+}
+
+function commitWallPlacement() {
+    if(!pendingWall) return;
+    let type = pendingWall.type; let r = pendingWall.r; let c = pendingWall.c;
+    pendingWall = null; 
+
+    document.getElementById('wall-confirm-panel').classList.add('hide');
+    document.getElementById('bottom-turn-banner').classList.remove('hide');
+
     let activeColor = (activeTurn === 'p1') ? P1_COLOR : P2_COLOR;
-    
     if(type === 'h') hWalls[r][c] = activeColor; else vWalls[r][c] = activeColor;
 
     if(!hasValidPath(playerPieces.p1, 0) || !hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
         if(type === 'h') hWalls[r][c] = null; else vWalls[r][c] = null;
         triggerGameNotice("⚠️ PATH LOCKOUT REJECTED!");
+        renderEngine();
         return;
     }
 
-    wallInventory[activeTurn]--;
-
     if(gameMode === 'host' || gameMode === 'client') {
-        networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor, player: activeTurn });
+        networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor });
     }
-    evaluateTurnShiftOffline();
+    evaluateTurnShiftOffline(true);
+}
+
+function cancelWallPlacement() {
+    pendingWall = null;
+    document.getElementById('wall-confirm-panel').classList.add('hide');
+    document.getElementById('bottom-turn-banner').classList.remove('hide');
+    renderEngine();
 }
 
 function updateHeaderIndicator() {
@@ -339,9 +341,11 @@ function updateHeaderIndicator() {
     if (!bottomBanner) return;
 
     if(gameMode === 'pass') { identityTag.innerText = "PASS & PLAY"; } 
+    else if(gameMode === 'ai') { identityTag.innerText = `VS BOT (${aiDifficulty.toUpperCase()})`; } 
     else { identityTag.innerText = myRole === 'p1' ? "🔴 YOU: RED" : "🔵 YOU: BLUE"; }
 
-    let isMyTurn = (gameMode === 'pass') || (gameMode !== 'pass' && activeTurn === myRole);
+    // 🔒 FIXED EXPLICIT TURN CHECK: No more flip-flops
+    let isMyTurn = (gameMode === 'pass') || (gameMode === 'ai' && activeTurn === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && activeTurn === myRole);
     
     if(isMyTurn) {
         bottomBanner.classList.add('pulse-active');
@@ -349,16 +353,16 @@ function updateHeaderIndicator() {
             bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
             bottomBanner.style.borderColor = activeTurn === 'p1' ? P1_COLOR : P2_COLOR;
         } else {
-            if(wallInventory[myRole] <= 0) {
-                bottomBanner.innerText = "YOUR TURN ! OUT OF WALLS (MOVE ONLY)";
-            } else {
-                bottomBanner.innerText = "YOUR TURN ! TAP CELL CENTER OR GAP";
-            }
+            bottomBanner.innerText = "YOUR TURN ! CHOOSE ACTION";
             bottomBanner.style.borderColor = myRole === 'p1' ? P1_COLOR : P2_COLOR;
         }
     } else {
         bottomBanner.classList.remove('pulse-active');
-        bottomBanner.innerText = "WAITING FOR OPPONENT...";
+        if(gameMode === 'pass') {
+             bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
+        } else {
+             bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : "WAITING FOR OPPONENT...";
+        }
         bottomBanner.style.borderColor = "#12213a";
     }
 }
@@ -425,20 +429,22 @@ function finalizeMoveTransmission() {
     if(gameMode === 'host' || gameMode === 'client') {
         networkConnection.send({ type: 'move', player: activeTurn, coordinates: playerPieces[activeTurn] });
     }
-    evaluateTurnShiftOffline();
+    evaluateTurnShiftOffline(true);
 }
 
 function paintBoardOnVictory(winnerColor) {
     document.querySelectorAll('.cell').forEach(cell => { cell.style.backgroundColor = winnerColor; });
 }
 
-function evaluateTurnShiftOffline() {
+function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     if(playerPieces.p1.r === 0) { clearInterval(turnTimer); paintBoardOnVictory(P1_COLOR); setTimeout(() => { launchVictorySequence("p1"); }, 400); return; }
     if(playerPieces.p2.r === GRID_SIZE - 1) { clearInterval(turnTimer); paintBoardOnVictory(P2_COLOR); setTimeout(() => { launchVictorySequence("p2"); }, 400); return; }
 
     activeTurn = activeTurn === 'p1' ? 'p2' : 'p1';
     resetTurnTimer(); 
     renderEngine();
+    
+    if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
 }
 
 function launchVictorySequence(winningRole) {
@@ -448,7 +454,7 @@ function launchVictorySequence(winningRole) {
     const shareBtn = document.getElementById('share-results-btn');
     const cardBox = document.getElementById('victory-card-box');
 
-    let localPlayerWon = (gameMode === 'pass') || (gameMode !== 'pass' && myRole === winningRole);
+    let localPlayerWon = (gameMode === 'pass') || (gameMode === 'ai' && winningRole === 'p1') || (gameMode !== 'pass' && gameMode !== 'ai' && myRole === winningRole);
 
     if (localPlayerWon) {
         titleHeader.innerText = "VICTORY!"; titleHeader.style.color = "#8edc3a"; cardBox.style.borderColor = "#8edc3a"; shareBtn.style.display = "inline-block";
@@ -459,6 +465,56 @@ function launchVictorySequence(winningRole) {
         titleHeader.innerText = "DEFEAT!"; titleHeader.style.color = "#ff5252"; cardBox.style.borderColor = "#ff5252"; shareBtn.style.display = "none"; 
         subtitleText.innerText = "LOSE! BETTER LUCK NEXT TIME"; subtitleText.style.color = "#ff5252"; showScreen('victory-screen'); stopCelebrationCanvas(); 
     }
+}
+
+function execute4LevelEngineAI() {
+    let ai = playerPieces.p2; let human = playerPieces.p1;
+    let actionTaken = false;
+
+    let blockProbability = 0;
+    if (aiDifficulty === 'easy') blockProbability = 0.05;
+    else if (aiDifficulty === 'medium') blockProbability = 0.40;
+    else if (aiDifficulty === 'hard') blockProbability = 0.75;
+    else if (aiDifficulty === 'extreme') blockProbability = 0.95;
+
+    if (Math.random() < blockProbability && human.r > 1) {
+        let blockR = human.r - 1; let blockC = human.c;
+        if (hWalls[blockR][blockC] === null) {
+            hWalls[blockR][blockC] = P2_COLOR;
+            if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
+                actionTaken = true; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+            } else { hWalls[blockR][blockC] = null; }
+        }
+    }
+
+    if (!actionTaken) {
+        let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
+        
+        if(aiDifficulty === 'easy') { validSteps.sort(() => Math.random() - 0.5); } 
+        else {
+            validSteps.sort((a, b) => {
+                let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
+                let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
+                return distA - distB;
+            });
+        }
+
+        for (let step of validSteps) {
+            if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
+                if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
+                    playerPieces.p2 = step; actionTaken = true; break;
+                }
+            }
+        }
+    }
+
+    if (!actionTaken) {
+        let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
+        if (hWalls[rr][rc] === null) hWalls[rr][rc] = P2_COLOR;
+        else if (vWalls[rr][rc] === null) vWalls[rr][rc] = P2_COLOR;
+    }
+
+    evaluateTurnShiftOffline(false);
 }
 
 function startCelebrationCanvas() {
