@@ -29,9 +29,8 @@ body {
     align-items: center; justify-content: center;
     width: 100%; max-width: 600px;
     padding: 15px; box-sizing: border-box;
-    position: relative;
 }
-.screen.active { display: flex; }
+.screen.active { display: flex !important; } /* Force active visibility */
 .screen.large-layout { max-width: 100vw; }
 
 .game-title { font-size: 2.2rem; text-align: center; margin: 0; color: #00beff; text-shadow: 4px 4px 0px #002d54; }
@@ -46,8 +45,7 @@ body {
     cursor: pointer; position: relative;
     box-sizing: border-box; display: inline-block;
     text-shadow: 2px 2px 0px rgba(0,0,0,0.3);
-    width: 100%;
-    transition: transform 0.1s;
+    width: 100%; transition: transform 0.1s;
 }
 .pixel-btn.compact { font-size: 0.65rem; padding: 8px 14px; border-width: 3px; width: auto; }
 
@@ -60,28 +58,31 @@ body {
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
+/* 🕹️ STABLE ARROWS AND GRID SIZING FOR THE WRAPPER */
 .pixel-board-wrap { 
     background: #080f1a; padding: 10px; border: 4px solid #1c3254; 
-    box-shadow: 6px 6px 0px black; position: relative; margin: 8px auto; 
-    width: 95vw; max-width: 500px; box-sizing: border-box;
+    box-shadow: 6px 6px 0px black; position: relative; margin: 10px auto; 
+    width: 90vw; max-width: 440px; box-sizing: border-box; display: block !important;
 }
 
 #game-board { 
-    display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); 
-    background: #0f1826; gap: 5px; width: 100%; aspect-ratio: 1 / 1; position: relative; 
+    display: grid !important; 
+    grid-template-columns: repeat(8, 1fr) !important; 
+    grid-template-rows: repeat(8, 1fr) !important; 
+    background: #0f1826; gap: 4px; width: 100%; aspect-ratio: 1 / 1; position: relative; 
 }
 
 .cell { 
     background: var(--cell-color); display: flex; align-items: center; justify-content: center; 
     cursor: pointer; position: relative; touch-action: manipulation; transition: background-color 0.25s ease;
-    min-height: 48px;
+    width: 100%; height: 100%; box-sizing: border-box;
 }
 
-.cell.goal-row-glow { background-color: rgba(142, 220, 58, 0.08) !important; box-shadow: inset 0 0 8px rgba(142, 220, 58, 0.25) !important; }
-.cell.start-row-glow { background-color: rgba(255, 155, 19, 0.04) !important; box-shadow: inset 0 0 6px rgba(255, 155, 19, 0.15) !important; }
+.cell.goal-row-glow { background-color: rgba(142, 220, 58, 0.12) !important; box-shadow: inset 0 0 8px rgba(142, 220, 58, 0.3) !important; }
+.cell.start-row-glow { background-color: rgba(255, 155, 19, 0.08) !important; box-shadow: inset 0 0 6px rgba(255, 155, 19, 0.2) !important; }
 
 .game-piece { 
-    width: 70%; height: 70%; border-radius: 50%; z-index: 5; 
+    width: 75%; height: 75%; border-radius: 50%; z-index: 5; 
     box-shadow: inset -2px -2px 4px rgba(0,0,0,0.4), 0 0 6px rgba(0,0,0,0.3); 
     pointer-events: none; animation: piecePopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
@@ -92,15 +93,11 @@ body {
 .visual-wall.h-wall { width: 100%; height: 8px; left: 0; }
 .visual-wall.v-wall { height: 100%; width: 8px; top: 0; }
 
-/* ⏱️ RETRO TIMER BOX STYLING */
 .timer-box {
     font-size: 0.65rem; background: #000000; padding: 6px 12px;
     border: 2px solid #ff9b13; color: #ff9b13; text-shadow: 1px 1px 0px black;
-    animation: timerPulse 1s infinite alternate;
 }
-@keyframes timerPulse { 0% { opacity: 0.8; } 100% { opacity: 1; box-shadow: 0 0 8px rgba(255,155,19,0.4); } }
 
-/* 🛠️ CONFIRMATION PANEL STYLING */
 .confirm-panel-wrap {
     width: 100%; background: #0c1626; border: 3px solid #ff9b13;
     padding: 12px; box-sizing: border-box; text-align: center;
@@ -136,7 +133,7 @@ body {
 @keyframes diceSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 #victory-screen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(3, 6, 12, 0.96); z-index: 800; display: none; }
-#victory-screen.active { display: flex; }
+#victory-screen.active { display: flex !important; }
 #firecracker-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 801; }
 .victory-content { z-index: 802; max-width: 340px; border: 5px solid #ff9b13; }
 .victory-title { font-size: 1.4rem; color: #ff9b13; margin: 0 0 15px 0; }
