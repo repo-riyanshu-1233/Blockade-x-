@@ -199,10 +199,17 @@ function disconnectPeer() {
 
 function setupFreshMatch() {
     activeTurn = 'p1'; 
+    playerPieces = { r: GRID_SIZE - 1, c: 3 };
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
-    
+
+    // 🔓 WALL LIMIT RULES
+    // - Pass & Play: kept generous (20 each), unchanged.
+    // - VS AI: NO LIMIT for both Player (p1) and Bot (p2) — as requested.
+    // - Online modes: kept at 10 each (competitive balance), unchanged.
     if(gameMode === 'pass') {
         wallInventory = { p1: 20, p2: 20 };
+    } else if(gameMode === 'ai') {
+        wallInventory = { p1: Infinity, p2: Infinity };
     } else {
         wallInventory = { p1: 10, p2: 10 };
     }
@@ -224,7 +231,7 @@ function triggerTimedRuleNotice() {
     if(gameMode === 'pass') {
         noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nMIMD YOUR STEPS NO MOVE IS REVERTED!";
     } else if(gameMode === 'ai') {
-        noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n10 WALLS CAPACITY CAP ASSIGNED.\n\nMAKE STEPS COUNT!`;
+        noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\nUNLIMITED WALLS FOR BOTH SIDES!\n\nMAKE STEPS COUNT!`;
     } else {
         noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nMIND YOUR STEPS NO TURNS CAN BE REVERTED!";
     }
@@ -257,13 +264,18 @@ function resetTurnTimer() {
     }, 1000);
 }
 
+// Small helper so "unlimited" walls display nicely instead of the word "Infinity"
+function formatWallCount(value) {
+    return value === Infinity ? '∞' : value;
+}
+
 function renderEngine() {
     const board = document.getElementById('game-board');
     if (!board) return; 
     board.innerHTML = '';
 
-    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = wallInventory.p1;
-    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = wallInventory.p2;
+    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = formatWallCount(wallInventory.p1);
+    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = formatWallCount(wallInventory.p2);
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
@@ -313,13 +325,57 @@ function renderEngine() {
     updateHeaderIndicator();
 }
 
+// 🎯 Checks whether tapping (tarR, tarC) would be a legal MOVE for `turn`'s piece,
+// without actually committing anything. Used to make sure a tap on a valid
+// forward/side move cell always moves the piece, instead of accidentally
+// being swallowed by the wall-placement edge-zone logic below.
+function isLegalMoveTarget(turn, tarR, tarC) {
+    let loc = playerPieces[turn];
+    let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
+
+    let dr = tarR - loc.r; let dc = tarC - loc.c;
+    let absDr = Math.abs(dr); let absDc = Math.abs(dc);
+
+    if ((absDr === 1 && dc === 0) || (dr === 0 && absDc === 1)) {
+        if (isWallBlocking(loc.r, loc.c, tarR, tarC)) return false;
+        if (opp.r === tarR && opp.c === tarC) return false;
+        return true;
+    }
+    if (absDr === 2 && dc === 0) {
+        let midR = loc.r + (dr / 2);
+        if (opp.r === midR && opp.c === loc.c) {
+            if (isWallBlocking(loc.r, loc.c, midR, loc.c) || isWallBlocking(midR, loc.c, tarR, tarC)) return false;
+            return true;
+        }
+    }
+    if (dr === 0 && absDc === 2) {
+        let midC = loc.c + (dc / 2);
+        if (opp.r === loc.r && opp.c === midC) {
+            if (isWallBlocking(loc.r, loc.c, loc.r, midC) || isWallBlocking(loc.r, midC, tarR, tarC)) return false;
+            return true;
+        }
+    }
+    return false;
+}
+
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
 
+    // ✅ MISS-TAP FIX (part 1): if the tapped cell is a legal move destination for the
+    // current player's piece, ALWAYS move there — no matter where inside the cell the
+    // tap landed. This stops "I tapped the green forward cell but a wall got placed".
+    if (isLegalMoveTarget(activeTurn, r, c)) {
+        processPieceMovement(r, c);
+        return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-    const edgeThreshold = rect.width * 0.35; 
+    // ✅ MISS-TAP FIX (part 2): shrunk from 0.35 → 0.2. The old value made 70% of every
+    // cell count as a "wall edge", leaving only a tiny 30% center zone for movement,
+    // which is what caused most accidental wall placements on mobile taps.
+    const edgeThreshold = rect.width * 0.2; 
 
     let hasWallsLeft = wallInventory[activeTurn] > 0;
 
@@ -333,7 +389,10 @@ function handleSmartCellTouch(e, r, c) {
             if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
             if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
             if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
-            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
+            // ✅ MISS-TAP FIX (part 3): this was `commitDirectWall('v', r, c - 1)` — a copy/paste
+            // bug that placed the wall on the LEFT side of the cell even when the player
+            // tapped the RIGHT edge. Corrected to reference the cell's own right-side wall (c).
+            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
         }
     }
     processPieceMovement(r, c);
