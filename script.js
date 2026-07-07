@@ -1,7 +1,7 @@
 // ==========================================
 // 🛠️ MAINTENANCE SWITCH CONTROLLER
 // ==========================================
-const MAINTENANCE_SWITCH = true; // 🔴 Turn 'true' to block game, 'false' to run normal.
+const MAINTENANCE_SWITCH = true; // Set true to trigger maintenance page.
 
 const GRID_SIZE = 8; 
 
@@ -11,14 +11,15 @@ const P2_COLOR = '#00beff';
 let gameMode = 'pass'; 
 let myRole = 'p1';       
 let activeTurn = 'p1'; 
-let aiDifficulty = 'medium'; 
+let aiDifficulty = 'intermediate'; // Default (beginner, intermediate, pro, god, hacker)
+let hackerLevel = 1;               // 1 to 5 progression scale
 
 let myPlayerName = "PLAYER";
 let opponentPlayerName = "OPPONENT";
 
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
-let wallInventory = { p1: 10, p2: 10 };
 
+// WALL LIMIT REMOVED GLOBALLY - Set array initialization but logic won't restrict limits
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
@@ -30,22 +31,16 @@ let networkConnection = null;
 let firecrackerInterval = null;
 const cloudBrokerPrefix = "BLKD-X8-"; 
 
-// Run when DOM is loaded to verify System State
 window.addEventListener('DOMContentLoaded', () => {
     if (MAINTENANCE_SWITCH) {
-        // Force trigger Maintenance Banner and lock routing
         showScreen('maintenance-screen');
     } else {
-        // Boot normal game menu
         showScreen('menu-screen');
     }
 });
 
 function showScreen(screenId) {
-    // If maintenance is true, never allow switching away from maintenance screen
-    if (MAINTENANCE_SWITCH && screenId !== 'maintenance-screen') {
-        return;
-    }
+    if (MAINTENANCE_SWITCH && screenId !== 'maintenance-screen') return;
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
@@ -59,7 +54,7 @@ function showScreen(screenId) {
 }
 
 function toggleModal(modalId, isOpen) {
-    if (MAINTENANCE_SWITCH) return; // Block actions during maintenance
+    if (MAINTENANCE_SWITCH) return; 
     document.getElementById(modalId).style.display = isOpen ? 'flex' : 'none';
 }
 
@@ -82,6 +77,10 @@ function launchDirectGame(mode) {
 
 function launchAIGame(diff) {
     gameMode = 'ai'; aiDifficulty = diff; myRole = 'p1'; setupFreshMatch();
+}
+
+function launchHackerGame(lvl) {
+    gameMode = 'ai'; aiDifficulty = 'hacker'; hackerLevel = lvl; myRole = 'p1'; setupFreshMatch();
 }
 
 function generate5BitCode() {
@@ -201,7 +200,6 @@ function setupNetworkListeners() {
         } else if(data.type === 'wall') {
             if(data.wallType === 'h') hWalls[data.r][data.c] = data.color;
             else vWalls[data.r][data.c] = data.color;
-            wallInventory[data.player]--; 
             evaluateTurnShiftOffline(false);
         } else if(data.type === 'timeout') {
             triggerGameNotice("⚠️ OPPONENT TIMED OUT! YOUR TURN");
@@ -221,12 +219,6 @@ function setupFreshMatch() {
     activeTurn = 'p1'; 
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
     
-    if(gameMode === 'pass') {
-        wallInventory = { p1: 20, p2: 20 };
-    } else {
-        wallInventory = { p1: 10, p2: 10 };
-    }
-
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     
@@ -242,11 +234,15 @@ function triggerTimedRuleNotice() {
     if(!noticeBox || !noticeText) return;
 
     if(gameMode === 'pass') {
-        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nNO PLACEMENTS CAN BE REFUNDED!";
+        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\n💥 WALL LIMIT REMOVED! INFINITE PLACEMENTS ALLOWED!";
     } else if(gameMode === 'ai') {
-        noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n10 WALLS CAPACITY CAP ASSIGNED.\n\nMAKE STEPS COUNT!`;
+        if(aiDifficulty === 'hacker') {
+            noticeText.innerText = `🚨 HACKER SECTOR PROTOCOL LEVEL ${hackerLevel} 🚨\n\nAI WILL BLOCK & PREDICT EVERY STEP.\n\nNO WALL LIMITS. PREPARE TO LOSE!`;
+        } else {
+            noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n💥 WALL LIMIT REMOVED! INFINITE BARRIERS DEPLOYABLE.`;
+        }
     } else {
-        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nNO TURNS CAN BE REVERTED!";
+        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\n💥 MATRIX LIMIT OVERRIDDEN: UNLIMITED WALLS.";
     }
 
     noticeBox.classList.remove('hide');
@@ -281,9 +277,6 @@ function renderEngine() {
     const board = document.getElementById('game-board');
     if (!board) return; 
     board.innerHTML = '';
-
-    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = wallInventory.p1;
-    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = wallInventory.p2;
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
@@ -341,20 +334,17 @@ function handleSmartCellTouch(e, r, c) {
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
     const edgeThreshold = rect.width * 0.35; 
 
-    let hasWallsLeft = wallInventory[activeTurn] > 0;
-
-    if (hasWallsLeft) {
-        if (myRole === 'p2') {
-            if (y < edgeThreshold && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
-            if (y > (rect.height - edgeThreshold) && r > 0) { commitDirectWall('h', r - 1, c); return; }
-            if (x < edgeThreshold && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
-            if (x > (rect.width - edgeThreshold) && c > 0) { commitDirectWall('v', r, c - 1); return; }
-        } else {
-            if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
-            if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
-            if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
-            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
-        }
+    // WALL LIMIT CHECKS REMOVED COMPLETELY
+    if (myRole === 'p2') {
+        if (y < edgeThreshold && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
+        if (y > (rect.height - edgeThreshold) && r > 0) { commitDirectWall('h', r - 1, c); return; }
+        if (x < edgeThreshold && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
+        if (x > (rect.width - edgeThreshold) && c > 0) { commitDirectWall('v', r, c - 1); return; }
+    } else {
+        if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
+        if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
+        if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
     }
     processPieceMovement(r, c);
 }
@@ -373,8 +363,6 @@ function commitDirectWall(type, r, c) {
         return;
     }
 
-    wallInventory[activeTurn]--;
-
     if(gameMode === 'host' || gameMode === 'client') {
         networkConnection.send({ type: 'wall', wallType: type, r: r, c: c, color: activeColor, player: activeTurn });
     }
@@ -389,7 +377,8 @@ function updateHeaderIndicator() {
     if(gameMode === 'pass') { 
         identityTag.innerText = "PASS & PLAY"; 
     } else if(gameMode === 'ai') { 
-        identityTag.innerText = `YOU vs BOT`; 
+        if(aiDifficulty==='hacker') identityTag.innerText = `HACKER LEVEL ${hackerLevel}`;
+        else identityTag.innerText = `YOU VS BOT`; 
     } else { 
         let redLabel = (myRole === 'p1') ? myPlayerName : opponentPlayerName;
         let blueLabel = (myRole === 'p2') ? myPlayerName : opponentPlayerName;
@@ -404,11 +393,7 @@ function updateHeaderIndicator() {
             bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
             bottomBanner.style.borderColor = activeTurn === 'p1' ? P1_COLOR : P2_COLOR;
         } else {
-            if(wallInventory[myRole] <= 0) {
-                bottomBanner.innerText = "YOUR TURN ! OUT OF WALLS";
-            } else {
-                bottomBanner.innerText = "YOUR TURN ! PLACE OR MOVE";
-            }
+            bottomBanner.innerText = "YOUR TURN ! PLACE OR MOVE";
             bottomBanner.style.borderColor = myRole === 'p1' ? P1_COLOR : P2_COLOR;
         }
     } else {
@@ -416,7 +401,7 @@ function updateHeaderIndicator() {
         if(gameMode === 'pass') {
              bottomBanner.innerText = activeTurn === 'p1' ? "🔴 RED PLAYER TURN" : "🔵 BLUE PLAYER TURN";
         } else {
-             bottomBanner.innerText = gameMode === 'ai' ? "🤖 BOT IS CALCULATING..." : `⏳ ${opponentPlayerName}'S TURN...`;
+             bottomBanner.innerText = (aiDifficulty === 'hacker') ? "⚡ QUANTUM PREDICTING..." : "🤖 BOT CALCULATION...";
         }
         bottomBanner.style.borderColor = "#12213a";
     }
@@ -499,7 +484,7 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     resetTurnTimer(); 
     renderEngine();
     
-    if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(execute4LevelEngineAI, 500); }
+    if(gameMode === 'ai' && activeTurn === 'p2' && shouldTriggerAI) { setTimeout(executeAdvancedEngineAI, 400); }
 }
 
 function launchVictorySequence(winningRole) {
@@ -522,30 +507,68 @@ function launchVictorySequence(winningRole) {
     }
 }
 
-function execute4LevelEngineAI() {
+// =============================================================
+// 🧠 UPGRADED NEXT-LEVEL AI LOGIC (HIGH PREDICTION FOR HACKER 5)
+// =============================================================
+function executeAdvancedEngineAI() {
     let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
-    let blockProbability = 0;
-    if (aiDifficulty === 'easy') blockProbability = 0.05;
-    else if (aiDifficulty === 'medium') blockProbability = 0.40;
-    else if (aiDifficulty === 'hard') blockProbability = 0.75;
-    else if (aiDifficulty === 'extreme') blockProbability = 0.95;
+    // Mapping new tier probabilities
+    let blockProbability = 0.40; // Default intermediate
+    if (aiDifficulty === 'beginner') blockProbability = 0.05;
+    else if (aiDifficulty === 'pro') blockProbability = 0.75;
+    else if (aiDifficulty === 'god') blockProbability = 0.95;
+    else if (aiDifficulty === 'hacker') {
+        // Hacker progression setup
+        if(hackerLevel === 1) blockProbability = 0.15;
+        else if(hackerLevel === 2) blockProbability = 0.50;
+        else if(hackerLevel === 3) blockProbability = 0.80;
+        else if(hackerLevel >= 4) blockProbability = 1.00; // Flawless Block Deployment
+    }
 
-    if (Math.random() < blockProbability && human.r > 1) {
+    // ⭐ UNBEATABLE LEVEL 5 HACKER PREDICTIVE ALGORITHM
+    if (aiDifficulty === 'hacker' && hackerLevel === 5) {
+        // Step 1: Simulate human's absolute best immediate move to see if they win
+        let humanMoves = [{r: human.r-1, c: human.c}, {r: human.r, c: human.c-1}, {r: human.r, c: human.c+1}, {r: human.r+1, c: human.c}];
+        humanMoves.sort((a,b) => getShortestPathDistance(a, 0) - getShortestPathDistance(b, 0));
+        let bestHumanNextStep = humanMoves[0];
+
+        // Step 2: Trap human if they get too close to row 0
+        if(bestHumanNextStep && bestHumanNextStep.r >= 0 && bestHumanNextStep.r < GRID_SIZE) {
+            let targetR = bestHumanNextStep.r;
+            let targetC = bestHumanNextStep.c;
+
+            // Generate an instant cutting barrier right over their future path
+            if (hWalls[targetR][targetC] === null) {
+                hWalls[targetR][targetC] = P2_COLOR;
+                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
+                    actionTaken = true; triggerGameNotice("⚡ HACKER LEVEL 5: FUTURE PREDICTED!");
+                } else { hWalls[targetR][targetC] = null; }
+            }
+        }
+    }
+
+    // General Standard Wall Blocking logic for Pro/God/Hacker levels
+    if (!actionTaken && Math.random() < blockProbability && human.r > 1) {
         let blockR = human.r - 1; let blockC = human.c;
         if (hWalls[blockR][blockC] === null) {
             hWalls[blockR][blockC] = P2_COLOR;
             if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                actionTaken = true; wallInventory.p2--; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+                actionTaken = true; 
+                triggerGameNotice((aiDifficulty==='hacker') ? "⚡ PATH FORCE CLOSED BY HACKER!" : "🤖 BOT PLACED A BARRIER!");
             } else { hWalls[blockR][blockC] = null; }
         }
     }
 
+    // Step Execution (Movement processing)
     if (!actionTaken) {
         let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
-        if(aiDifficulty === 'easy') { validSteps.sort(() => Math.random() - 0.5); } 
-        else {
+        
+        if(aiDifficulty === 'beginner' || (aiDifficulty === 'hacker' && hackerLevel === 1)) { 
+            validSteps.sort(() => Math.random() - 0.5); 
+        } else {
+            // God / Hacker 4 & 5 uses Maximum Depth path tracing sorting
             validSteps.sort((a, b) => {
                 let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
                 let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
@@ -562,10 +585,11 @@ function execute4LevelEngineAI() {
         }
     }
 
+    // Safe fallback loop if somehow blocked completely
     if (!actionTaken) {
         let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
-        if (hWalls[rr][rc] === null && wallInventory.p2 > 0) { hWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
-        else if (vWalls[rr][rc] === null && wallInventory.p2 > 0) { vWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
+        if (hWalls[rr][rc] === null) { hWalls[rr][rc] = P2_COLOR; }
+        else if (vWalls[rr][rc] === null) { vWalls[rr][rc] = P2_COLOR; }
     }
 
     evaluateTurnShiftOffline(false);
