@@ -1,7 +1,7 @@
 // ==========================================
 // 🛠️ MAINTENANCE SWITCH CONTROLLER
 // ==========================================
-const MAINTENANCE_SWITCH = true; 
+const MAINTENANCE_SWITCH = false; 
 
 const GRID_SIZE = 8; 
 
@@ -321,13 +321,56 @@ function renderEngine() {
     updateHeaderIndicator();
 }
 
+// ✅ MISS-TAP FIX — helper: does tapping (tarR, tarC) represent a LEGAL MOVE for `turn`'s
+// piece right now (straight step, or straight jump over the opponent)? Mirrors the exact
+// rules in processPieceMovement below, but only checks — never commits anything.
+function isLegalMoveTarget(turn, tarR, tarC) {
+    let loc = playerPieces[turn];
+    let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
+
+    let dr = tarR - loc.r; let dc = tarC - loc.c;
+    let absDr = Math.abs(dr); let absDc = Math.abs(dc);
+
+    if ((absDr === 1 && dc === 0) || (dr === 0 && absDc === 1)) {
+        if (isWallBlocking(loc.r, loc.c, tarR, tarC)) return false;
+        if (opp.r === tarR && opp.c === tarC) return false;
+        return true;
+    }
+    if (absDr === 2 && dc === 0) {
+        let midR = loc.r + (dr / 2);
+        if (opp.r === midR && opp.c === loc.c) {
+            if (isWallBlocking(loc.r, loc.c, midR, loc.c) || isWallBlocking(midR, loc.c, tarR, tarC)) return false;
+            return true;
+        }
+    }
+    if (dr === 0 && absDc === 2) {
+        let midC = loc.c + (dc / 2);
+        if (opp.r === loc.r && opp.c === midC) {
+            if (isWallBlocking(loc.r, loc.c, loc.r, midC) || isWallBlocking(loc.r, midC, tarR, tarC)) return false;
+            return true;
+        }
+    }
+    return false;
+}
+
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
 
+    // ✅ MISS-TAP FIX (part 1): if the tapped cell is a legal move destination for the
+    // active player, ALWAYS move there — no matter where inside the cell you tapped.
+    // This is what stops "I tapped the forward cell but a wall got placed instead".
+    if (isLegalMoveTarget(activeTurn, r, c)) {
+        processPieceMovement(r, c);
+        return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-    const edgeThreshold = rect.width * 0.35; 
+    // ✅ MISS-TAP FIX (part 2): the tappable "wall zone" is now sized to line up with the
+    // thicker black gap between cells (see style.css gap + .visual-wall sizes below), so a
+    // tap near the edge reliably lands on the wall action instead of feeling random.
+    const edgeThreshold = rect.width * 0.28; 
 
     if (myRole === 'p2') {
         if (y < edgeThreshold && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
@@ -338,7 +381,10 @@ function handleSmartCellTouch(e, r, c) {
         if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
         if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
         if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
-        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
+        // ✅ MISS-TAP FIX (part 3): this used to be `commitDirectWall('v', r, c - 1)` — a
+        // copy/paste bug that placed the wall on the LEFT side even when you tapped the
+        // RIGHT edge. Corrected to reference the cell's own right-side wall slot (c).
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
     }
     processPieceMovement(r, c);
 }
@@ -501,96 +547,138 @@ function launchVictorySequence(winningRole) {
 }
 
 // =============================================================
-// 🧠 SUPREMED UNBEATABLE ADVANCED ENGINE HACKER AI
+// 🧠 AI UPGRADE — real path-analysis engine (replaces the old
+// single-step-lookahead "hacker" trick with genuine board-wide search)
 // =============================================================
+
+// Every legal one-move destination for `turn` (straight step, or a straight jump
+// over the opponent when they sit directly adjacent). Lets the bot jump too.
+function getLegalMoveOptions(turn) {
+    let loc = playerPieces[turn];
+    let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
+    let options = [];
+    let dirs = [{r: -1, c: 0}, {r: 1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}];
+
+    for (let d of dirs) {
+        let nr = loc.r + d.r; let nc = loc.c + d.c;
+        if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) continue;
+        if (isWallBlocking(loc.r, loc.c, nr, nc)) continue;
+
+        if (opp.r === nr && opp.c === nc) {
+            let jr = nr + d.r; let jc = nc + d.c;
+            if (jr >= 0 && jr < GRID_SIZE && jc >= 0 && jc < GRID_SIZE && !isWallBlocking(nr, nc, jr, jc)) {
+                options.push({ r: jr, c: jc });
+            }
+        } else {
+            options.push({ r: nr, c: nc });
+        }
+    }
+    return options;
+}
+
+// Every currently-empty wall slot on the board.
+function enumerateWallCandidates() {
+    let candidates = [];
+    for (let r = 0; r < GRID_SIZE - 1; r++) {
+        for (let c = 0; c < GRID_SIZE - 1; c++) {
+            if (hWalls[r][c] === null) candidates.push({ type: 'h', r, c });
+            if (vWalls[r][c] === null) candidates.push({ type: 'v', r, c });
+        }
+    }
+    return candidates;
+}
+
+// The bot's "brain": temporarily place every possible wall, measure exactly how much
+// it lengthens the human's road vs the bot's own road, then undo it and rank them.
+// This replaces the old "just block one square above the human" trick with a genuine
+// board-wide search, so the AI finds real chokepoints instead of an obvious single spot.
+function getScoredWallCandidates() {
+    let candidatePool = enumerateWallCandidates();
+    let humanBaseDist = getShortestPathDistance(playerPieces.p1, 0);
+    let aiBaseDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
+    let scored = [];
+
+    for (let cand of candidatePool) {
+        if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
+
+        let valid = hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1);
+        if (valid) {
+            let newHumanDist = getShortestPathDistance(playerPieces.p1, 0);
+            let newAiDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
+            let score = (newHumanDist - humanBaseDist) - (newAiDist - aiBaseDist);
+            scored.push({ cand, score });
+        }
+
+        if (cand.type === 'h') hWalls[cand.r][cand.c] = null; else vWalls[cand.r][cand.c] = null;
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored;
+}
+
 function executeAdvancedEngineAI() {
-    let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
-    let blockProbability = 0.40; 
-    if (aiDifficulty === 'beginner') blockProbability = 0.05;
-    else if (aiDifficulty === 'pro') blockProbability = 0.75;
+    let blockProbability = 0.5;
+    if (aiDifficulty === 'beginner') blockProbability = 0.15;
+    else if (aiDifficulty === 'intermediate') blockProbability = 0.5;
+    else if (aiDifficulty === 'pro') blockProbability = 0.8;
     else if (aiDifficulty === 'god') blockProbability = 0.95;
-    else if (aiDifficulty === 'hacker') blockProbability = 1.00; // 100% Interception matrix
+    else if (aiDifficulty === 'hacker') blockProbability = 0.99; // 💀 near-optimal every turn
 
-    // ⚡ THE HACKER ENGINE - UNBEATABLE FUTURE PREDICTION MATRIX 
-    if (aiDifficulty === 'hacker') {
-        // Step 1: Human ke possible moves scan karo aur unki row 0 se shortest distance track karo
-        let humanDirections = [{r: -1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}, {r: 1, c: 0}];
-        let simulatedSteps = [];
+    if (Math.random() < blockProbability) {
+        let scored = getScoredWallCandidates();
+        let beneficial = scored.filter(s => s.score > 0);
+        let chosen = null;
 
-        for(let d of humanDirections) {
-            let checkR = human.r + d.r; let checkC = human.c + d.c;
-            if(checkR >= 0 && checkR < GRID_SIZE && checkC >= 0 && checkC < GRID_SIZE) {
-                if(!isWallBlocking(human.r, human.c, checkR, checkC)) {
-                    let cost = getShortestPathDistance({r: checkR, c: checkC}, 0);
-                    simulatedSteps.push({r: checkR, c: checkC, cost: cost});
-                }
+        if (beneficial.length > 0) {
+            if (aiDifficulty === 'beginner') {
+                chosen = beneficial[Math.floor(Math.random() * beneficial.length)];
+            } else if (aiDifficulty === 'intermediate') {
+                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.4));
+                chosen = beneficial[Math.floor(Math.random() * poolSize)];
+            } else if (aiDifficulty === 'pro') {
+                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.15));
+                chosen = beneficial[Math.floor(Math.random() * poolSize)];
+            } else if (aiDifficulty === 'god') {
+                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.05));
+                chosen = beneficial[Math.floor(Math.random() * poolSize)];
+            } else {
+                // hacker: always the single best wall the AI can find on the whole board.
+                chosen = beneficial[0];
             }
         }
 
-        // Sort out the human's absolute best step to take
-        simulatedSteps.sort((a, b) => a.cost - b.cost);
-        let absoluteBestHumanMove = simulatedSteps[0];
-
-        // Step 2: Trap design! Agar human optimal raaste par badh raha hai, AI instant counter block trigger karega
-        if(absoluteBestHumanMove && absoluteBestHumanMove.cost !== Infinity) {
-            let targetR = absoluteBestHumanMove.r;
-            let targetC = absoluteBestHumanMove.c;
-
-            // Deploys a smart horizontal barricade immediately blocking that transition step
-            let placeR = Math.min(human.r, targetR);
-            if(placeR < GRID_SIZE - 1 && hWalls[placeR][targetC] === null) {
-                hWalls[placeR][targetC] = P2_COLOR;
-                if(hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
-                    actionTaken = true;
-                    triggerGameNotice("⚡ HACKER AI: FUTURE PREDICTED AND SEALED!");
-                } else { hWalls[placeR][targetC] = null; }
-            }
+        if (chosen) {
+            let cand = chosen.cand;
+            if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
+            actionTaken = true;
+            if (aiDifficulty === 'hacker') triggerGameNotice("⚡ HACKER AI: OPTIMAL CHOKEPOINT SEALED!");
+            else triggerGameNotice("🤖 BOT PLACED A BARRIER!");
         }
     }
 
-    // Standard high probability bot blockage (For Pro/God)
-    if (!actionTaken && Math.random() < blockProbability && human.r > 1) {
-        let blockR = human.r - 1; let blockC = human.c;
-        if (hWalls[blockR][blockC] === null) {
-            hWalls[blockR][blockC] = P2_COLOR;
-            if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                actionTaken = true; 
-                triggerGameNotice("🤖 BOT PLACED A BARRIER!");
-            } else { hWalls[blockR][blockC] = null; }
-        }
-    }
-
-    // Absolute Shortest Path step execution if blocking wasn't done
     if (!actionTaken) {
-        let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
-        
-        if(aiDifficulty === 'beginner') { 
-            validSteps.sort(() => Math.random() - 0.5); 
-        } else {
-            // God and Hacker levels perform pure deep tracing distance weight comparisons
-            validSteps.sort((a, b) => {
-                let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
-                let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
-                return distA - distB;
-            });
-        }
-
-        for (let step of validSteps) {
-            if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
-                if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
-                    playerPieces.p2 = step; actionTaken = true; break;
-                }
+        let options = getLegalMoveOptions('p2');
+        if (options.length > 0) {
+            if (aiDifficulty === 'beginner') {
+                options.sort(() => Math.random() - 0.5);
+            } else {
+                options.sort((a, b) => getShortestPathDistance(a, GRID_SIZE - 1) - getShortestPathDistance(b, GRID_SIZE - 1));
             }
+            playerPieces.p2 = options[0];
+            actionTaken = true;
         }
     }
 
-    // Ultimate emergency failsafe wall drop
     if (!actionTaken) {
-        let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
-        if (hWalls[rr][rc] === null) { hWalls[rr][rc] = P2_COLOR; }
-        else if (vWalls[rr][rc] === null) { vWalls[rr][rc] = P2_COLOR; }
+        // Extremely rare fallback (bot fully boxed in) — place any valid wall so a turn always happens.
+        let scored = getScoredWallCandidates();
+        if (scored.length > 0) {
+            let cand = scored[0].cand;
+            if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
+            actionTaken = true;
+        }
     }
 
     evaluateTurnShiftOffline(false);
