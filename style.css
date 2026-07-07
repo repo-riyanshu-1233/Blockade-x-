@@ -54,6 +54,20 @@ body {
 .pixel-btn.orange { background: linear-gradient(to bottom, var(--pixel-orange-top) 50%, var(--pixel-orange-bot) 50%); color: white; border-color: var(--pixel-orange-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.red { background: linear-gradient(to bottom, var(--pixel-red-top) 50%, var(--pixel-red-bot) 50%); color: white; border-color: var(--pixel-red-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.grey { background: linear-gradient(to bottom, var(--pixel-grey-top) 50%, var(--pixel-grey-bot) 50%); color: white; border-color: var(--pixel-grey-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
+
+/* ⚡ PREMIUM CYBER PUNK HACKER BUTTON STYLE */
+.pixel-btn.hacker-cyber {
+    background: linear-gradient(to bottom, #000000 50%, #1a0000 50%);
+    color: #ff3333;
+    border-color: #ff0000;
+    box-shadow: inset -4px -4px 0px rgba(255, 0, 0, 0.2), 0 4px 0px black;
+    animation: cyberPulseBtn 2s infinite alternate;
+}
+@keyframes cyberPulseBtn {
+    0% { text-shadow: 2px 2px 0px #490c0c; box-shadow: 0 4px 0px black, 0 0 4px #ff0000; }
+    100% { text-shadow: 2px 2px 8px #ff0000; box-shadow: 0 4px 0px black, 0 0 15px #ff3333; }
+}
+
 .pixel-btn:active { transform: translateY(4px); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
