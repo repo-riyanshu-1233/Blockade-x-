@@ -82,7 +82,11 @@ body {
     display: grid !important; 
     grid-template-columns: repeat(8, 1fr) !important; 
     grid-template-rows: repeat(8, 1fr) !important; 
-    background: #0f1826; gap: 4px; width: 100%; aspect-ratio: 1 / 1; position: relative; 
+    background: #0f1826;
+    /* 🟢 THICKER TAP-FRIENDLY GAP: raised from 4px so the wall zone between cells is
+       bigger and easier to hit precisely on mobile (matches the JS edgeThreshold). */
+    gap: 10px;
+    width: 100%; aspect-ratio: 1 / 1; position: relative; 
 }
 
 .cell { 
@@ -103,8 +107,10 @@ body {
 @keyframes piecePopIn { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
 .visual-wall { position: absolute; z-index: 15; pointer-events: none; border: 1px solid rgba(0, 0, 0, 0.3); }
-.visual-wall.h-wall { width: 100%; height: 8px; left: 0; }
-.visual-wall.v-wall { height: 100%; width: 8px; top: 0; }
+/* 🟢 THICKER WALL BARS: raised from 8px to fill the new, wider gap so placed walls are
+   clearly visible and visually match the bigger tap zone. */
+.visual-wall.h-wall { width: 100%; height: 14px; left: 0; }
+.visual-wall.v-wall { height: 100%; width: 14px; top: 0; }
 
 .timer-box {
     font-size: 0.65rem; background: #000000; padding: 6px 12px;
