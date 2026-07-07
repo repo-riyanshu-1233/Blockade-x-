@@ -10,7 +10,7 @@
 </head>
 <body>
 
-    <!-- 🛠️ MAINTENANCE SCREEN OVERLAY (NEW) -->
+    <!-- 🛠️ MAINTENANCE SCREEN OVERLAY -->
     <div id="maintenance-screen" class="screen">
         <div class="pixel-card" style="border-color: #ff5252 !important; max-width: 450px;">
             <h1 style="color: #ff5252; font-size: 1.5rem; margin-bottom: 20px; text-shadow: 3px 3px 0px #490c0c;">⚠️ MAINTENANCE</h1>
@@ -35,8 +35,9 @@
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="launchDirectGame('pass')">PASS & PLAY</button>
             <button class="pixel-btn blue" onclick="showScreen('ai-menu-screen')">VS AI ROBOT 🤖</button>
-            <button class="pixel-btn orange" onclick="showScreen('online-name-screen')">ONLINE PVP (RANDOM)</button>
-            <button class="pixel-btn red" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
+            <button class="pixel-btn orange" onclick="showScreen('hacker-menu-screen')">HACKER MODE ⚡</button>
+            <button class="pixel-btn red" onclick="showScreen('online-name-screen')">ONLINE PVP (RANDOM)</button>
+            <button class="pixel-btn grey" style="background:#1c3254" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
 
         <div class="retro-footer">
@@ -50,14 +51,28 @@
         </div>
     </div>
 
-    <!-- 2. AI SELECTION SCREEN -->
+    <!-- 2. AI SELECTION SCREEN (UPDATED NAMES) -->
     <div id="ai-menu-screen" class="screen">
         <h2 class="screen-title">BOT DIFFICULTY</h2>
         <div class="menu-buttons">
-            <button class="pixel-btn green" onclick="launchAIGame('easy')">EASY MODE</button>
-            <button class="pixel-btn blue" onclick="launchAIGame('medium')">MEDIUM MODE</button>
-            <button class="pixel-btn orange" onclick="launchAIGame('hard')">HARD MODE</button>
-            <button class="pixel-btn red" onclick="launchAIGame('extreme')">EXTREME MODE 💀</button>
+            <button class="pixel-btn green" onclick="launchAIGame('beginner')">BEGINNER</button>
+            <button class="pixel-btn blue" onclick="launchAIGame('intermediate')">INTERMEDIATE</button>
+            <button class="pixel-btn orange" onclick="launchAIGame('pro')">PRO MODE</button>
+            <button class="pixel-btn red" onclick="launchAIGame('god')">GOD MODE 💀</button>
+            <button class="pixel-btn compact grey" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+    </div>
+
+    <!-- NEW: HACKER MODE SELECTION SCREEN -->
+    <div id="hacker-menu-screen" class="screen">
+        <h2 class="screen-title" style="color: #ff5252;">HACKER SECTOR</h2>
+        <p style="font-size: 7px; color: #7f8fa4; text-align: center; margin-bottom: 20px;">AI WILL PREDICT AND DESTROY EVERY PATH POSSIBLE.</p>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="launchHackerGame(1)">LEVEL 1: EXPLOIT</button>
+            <button class="pixel-btn blue" onclick="launchHackerGame(2)">LEVEL 2: INJECTION</button>
+            <button class="pixel-btn orange" onclick="launchHackerGame(3)">LEVEL 3: OVERRIDE</button>
+            <button class="pixel-btn red" onclick="launchHackerGame(4)">LEVEL 4: BRUTE FORCE</button>
+            <button class="pixel-btn red" style="background: linear-gradient(to bottom, #000 50%, #490c0c 50%); border-color: #ff5252;" onclick="launchHackerGame(5)">LEVEL 5: UNBEATABLE UNIVERSE 🌌</button>
             <button class="pixel-btn compact grey" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
         </div>
     </div>
@@ -132,9 +147,9 @@
         </div>
 
         <div class="game-header">
-            <div class="score-tag-retro" id="identity-tag" style="max-width: 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">YOUR COLOR: --</div>
-            <div id="wall-counter-display" style="font-size: 7px; color: #ffffff; background: #12213a; padding: 6px 10px; border: 2px dashed #ff9b13;">
-                R: <span id="p1-walls-left">10</span> | B: <span id="p2-walls-left">10</span>
+            <div class="score-tag-retro" id="identity-tag" style="max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">YOUR COLOR: --</div>
+            <div id="wall-counter-display" style="font-size: 7px; color: #ffffff; background: #12213a; padding: 6px 10px; border: 2px dashed #ff5252;">
+                ⚠️ WALLS: INFINITE
             </div>
             <div class="timer-box" id="match-timer-display">TIME: 30s</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
