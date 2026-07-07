@@ -1,7 +1,7 @@
 // ==========================================
 // 🛠️ MAINTENANCE SWITCH CONTROLLER
 // ==========================================
-const MAINTENANCE_SWITCH = true; // Set true to trigger maintenance page.
+const MAINTENANCE_SWITCH = false; 
 
 const GRID_SIZE = 8; 
 
@@ -11,15 +11,14 @@ const P2_COLOR = '#00beff';
 let gameMode = 'pass'; 
 let myRole = 'p1';       
 let activeTurn = 'p1'; 
-let aiDifficulty = 'intermediate'; // Default (beginner, intermediate, pro, god, hacker)
-let hackerLevel = 1;               // 1 to 5 progression scale
+let aiDifficulty = 'intermediate'; // (beginner, intermediate, pro, god, hacker)
 
 let myPlayerName = "PLAYER";
 let opponentPlayerName = "OPPONENT";
 
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
 
-// WALL LIMIT REMOVED GLOBALLY - Set array initialization but logic won't restrict limits
+// GLOBALLY UNLIMITED WALL ENGINES
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
@@ -77,10 +76,6 @@ function launchDirectGame(mode) {
 
 function launchAIGame(diff) {
     gameMode = 'ai'; aiDifficulty = diff; myRole = 'p1'; setupFreshMatch();
-}
-
-function launchHackerGame(lvl) {
-    gameMode = 'ai'; aiDifficulty = 'hacker'; hackerLevel = lvl; myRole = 'p1'; setupFreshMatch();
 }
 
 function generate5BitCode() {
@@ -237,9 +232,9 @@ function triggerTimedRuleNotice() {
         noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\n💥 WALL LIMIT REMOVED! INFINITE PLACEMENTS ALLOWED!";
     } else if(gameMode === 'ai') {
         if(aiDifficulty === 'hacker') {
-            noticeText.innerText = `🚨 HACKER SECTOR PROTOCOL LEVEL ${hackerLevel} 🚨\n\nAI WILL BLOCK & PREDICT EVERY STEP.\n\nNO WALL LIMITS. PREPARE TO LOSE!`;
+            noticeText.innerText = `🚨 SYSTEM ALERT: HACKER MODE TERMINAL 🚨\n\nUNBEATABLE QUANTUM ENGINE SECTOR LOADED.\n\nAI WILL COUNTER AND BLOCK 100% OF YOUR OPTIMAL MOVES.`;
         } else {
-            noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n💥 WALL LIMIT REMOVED! INFINITE BARRIERS DEPLOYABLE.`;
+            noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n💥 MATRIX RECONFIGURED: INFINITE WALL DEPLOYMENT`;
         }
     } else {
         noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\n💥 MATRIX LIMIT OVERRIDDEN: UNLIMITED WALLS.";
@@ -334,7 +329,6 @@ function handleSmartCellTouch(e, r, c) {
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
     const edgeThreshold = rect.width * 0.35; 
 
-    // WALL LIMIT CHECKS REMOVED COMPLETELY
     if (myRole === 'p2') {
         if (y < edgeThreshold && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
         if (y > (rect.height - edgeThreshold) && r > 0) { commitDirectWall('h', r - 1, c); return; }
@@ -344,7 +338,7 @@ function handleSmartCellTouch(e, r, c) {
         if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
         if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
         if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
-        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
+        if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
     }
     processPieceMovement(r, c);
 }
@@ -377,8 +371,7 @@ function updateHeaderIndicator() {
     if(gameMode === 'pass') { 
         identityTag.innerText = "PASS & PLAY"; 
     } else if(gameMode === 'ai') { 
-        if(aiDifficulty==='hacker') identityTag.innerText = `HACKER LEVEL ${hackerLevel}`;
-        else identityTag.innerText = `YOU VS BOT`; 
+        identityTag.innerText = `AI: ${aiDifficulty.toUpperCase()}`; 
     } else { 
         let redLabel = (myRole === 'p1') ? myPlayerName : opponentPlayerName;
         let blueLabel = (myRole === 'p2') ? myPlayerName : opponentPlayerName;
@@ -508,67 +501,75 @@ function launchVictorySequence(winningRole) {
 }
 
 // =============================================================
-// 🧠 UPGRADED NEXT-LEVEL AI LOGIC (HIGH PREDICTION FOR HACKER 5)
+// 🧠 SUPREMED UNBEATABLE ADVANCED ENGINE HACKER AI
 // =============================================================
 function executeAdvancedEngineAI() {
     let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
-    // Mapping new tier probabilities
-    let blockProbability = 0.40; // Default intermediate
+    let blockProbability = 0.40; 
     if (aiDifficulty === 'beginner') blockProbability = 0.05;
     else if (aiDifficulty === 'pro') blockProbability = 0.75;
     else if (aiDifficulty === 'god') blockProbability = 0.95;
-    else if (aiDifficulty === 'hacker') {
-        // Hacker progression setup
-        if(hackerLevel === 1) blockProbability = 0.15;
-        else if(hackerLevel === 2) blockProbability = 0.50;
-        else if(hackerLevel === 3) blockProbability = 0.80;
-        else if(hackerLevel >= 4) blockProbability = 1.00; // Flawless Block Deployment
-    }
+    else if (aiDifficulty === 'hacker') blockProbability = 1.00; // 100% Interception matrix
 
-    // ⭐ UNBEATABLE LEVEL 5 HACKER PREDICTIVE ALGORITHM
-    if (aiDifficulty === 'hacker' && hackerLevel === 5) {
-        // Step 1: Simulate human's absolute best immediate move to see if they win
-        let humanMoves = [{r: human.r-1, c: human.c}, {r: human.r, c: human.c-1}, {r: human.r, c: human.c+1}, {r: human.r+1, c: human.c}];
-        humanMoves.sort((a,b) => getShortestPathDistance(a, 0) - getShortestPathDistance(b, 0));
-        let bestHumanNextStep = humanMoves[0];
+    // ⚡ THE HACKER ENGINE - UNBEATABLE FUTURE PREDICTION MATRIX 
+    if (aiDifficulty === 'hacker') {
+        // Step 1: Human ke possible moves scan karo aur unki row 0 se shortest distance track karo
+        let humanDirections = [{r: -1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}, {r: 1, c: 0}];
+        let simulatedSteps = [];
 
-        // Step 2: Trap human if they get too close to row 0
-        if(bestHumanNextStep && bestHumanNextStep.r >= 0 && bestHumanNextStep.r < GRID_SIZE) {
-            let targetR = bestHumanNextStep.r;
-            let targetC = bestHumanNextStep.c;
+        for(let d of humanDirections) {
+            let checkR = human.r + d.r; let checkC = human.c + d.c;
+            if(checkR >= 0 && checkR < GRID_SIZE && checkC >= 0 && checkC < GRID_SIZE) {
+                if(!isWallBlocking(human.r, human.c, checkR, checkC)) {
+                    let cost = getShortestPathDistance({r: checkR, c: checkC}, 0);
+                    simulatedSteps.push({r: checkR, c: checkC, cost: cost});
+                }
+            }
+        }
 
-            // Generate an instant cutting barrier right over their future path
-            if (hWalls[targetR][targetC] === null) {
-                hWalls[targetR][targetC] = P2_COLOR;
-                if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                    actionTaken = true; triggerGameNotice("⚡ HACKER LEVEL 5: FUTURE PREDICTED!");
-                } else { hWalls[targetR][targetC] = null; }
+        // Sort out the human's absolute best step to take
+        simulatedSteps.sort((a, b) => a.cost - b.cost);
+        let absoluteBestHumanMove = simulatedSteps[0];
+
+        // Step 2: Trap design! Agar human optimal raaste par badh raha hai, AI instant counter block trigger karega
+        if(absoluteBestHumanMove && absoluteBestHumanMove.cost !== Infinity) {
+            let targetR = absoluteBestHumanMove.r;
+            let targetC = absoluteBestHumanMove.c;
+
+            // Deploys a smart horizontal barricade immediately blocking that transition step
+            let placeR = Math.min(human.r, targetR);
+            if(placeR < GRID_SIZE - 1 && hWalls[placeR][targetC] === null) {
+                hWalls[placeR][targetC] = P2_COLOR;
+                if(hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE-1)) {
+                    actionTaken = true;
+                    triggerGameNotice("⚡ HACKER AI: FUTURE PREDICTED AND SEALED!");
+                } else { hWalls[placeR][targetC] = null; }
             }
         }
     }
 
-    // General Standard Wall Blocking logic for Pro/God/Hacker levels
+    // Standard high probability bot blockage (For Pro/God)
     if (!actionTaken && Math.random() < blockProbability && human.r > 1) {
         let blockR = human.r - 1; let blockC = human.c;
         if (hWalls[blockR][blockC] === null) {
             hWalls[blockR][blockC] = P2_COLOR;
             if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
                 actionTaken = true; 
-                triggerGameNotice((aiDifficulty==='hacker') ? "⚡ PATH FORCE CLOSED BY HACKER!" : "🤖 BOT PLACED A BARRIER!");
+                triggerGameNotice("🤖 BOT PLACED A BARRIER!");
             } else { hWalls[blockR][blockC] = null; }
         }
     }
 
-    // Step Execution (Movement processing)
+    // Absolute Shortest Path step execution if blocking wasn't done
     if (!actionTaken) {
         let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
         
-        if(aiDifficulty === 'beginner' || (aiDifficulty === 'hacker' && hackerLevel === 1)) { 
+        if(aiDifficulty === 'beginner') { 
             validSteps.sort(() => Math.random() - 0.5); 
         } else {
-            // God / Hacker 4 & 5 uses Maximum Depth path tracing sorting
+            // God and Hacker levels perform pure deep tracing distance weight comparisons
             validSteps.sort((a, b) => {
                 let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
                 let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
@@ -585,7 +586,7 @@ function executeAdvancedEngineAI() {
         }
     }
 
-    // Safe fallback loop if somehow blocked completely
+    // Ultimate emergency failsafe wall drop
     if (!actionTaken) {
         let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
         if (hWalls[rr][rc] === null) { hWalls[rr][rc] = P2_COLOR; }
