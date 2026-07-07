@@ -1,7 +1,7 @@
 // ==========================================
 // 🛠️ MAINTENANCE SWITCH CONTROLLER
 // ==========================================
-const MAINTENANCE_SWITCH = false; // Set true to trigger maintenance page.
+const MAINTENANCE_SWITCH = true; // Set true to trigger maintenance page.
 
 const GRID_SIZE = 8; 
 
