@@ -1,7 +1,7 @@
 // ==========================================
 // 🛠️ MAINTENANCE SWITCH CONTROLLER
 // ==========================================
-const MAINTENANCE_SWITCH = true; 
+const MAINTENANCE_SWITCH = false; 
 
 const GRID_SIZE = 8; 
 
@@ -305,13 +305,13 @@ function renderEngine() {
             if(r < GRID_SIZE - 1 && hWalls[r][c] !== null) {
                 let vHWall = document.createElement('div'); vHWall.className = 'visual-wall h-wall';
                 vHWall.style.backgroundColor = hWalls[r][c]; vHWall.style.boxShadow = `0 0 8px ${hWalls[r][c]}`;
-                if(myRole === 'p2') { vHWall.style.top = '-4px'; } else { vHWall.style.bottom = '-4px'; }
+                if(myRole === 'p2') { vHWall.style.top = '-7px'; } else { vHWall.style.bottom = '-7px'; }
                 cell.appendChild(vHWall);
             }
             if(c < GRID_SIZE - 1 && vWalls[r][c] !== null) {
                 let vVWall = document.createElement('div'); vVWall.className = 'visual-wall v-wall';
                 vVWall.style.backgroundColor = vWalls[r][c]; vVWall.style.boxShadow = `0 0 8px ${vWalls[r][c]}`;
-                if(myRole === 'p2') { vVWall.style.left = '-4px'; } else { vVWall.style.right = '-4px'; }
+                if(myRole === 'p2') { vVWall.style.left = '-7px'; } else { vVWall.style.right = '-7px'; }
                 cell.appendChild(vVWall);
             }
 
@@ -547,12 +547,9 @@ function launchVictorySequence(winningRole) {
 }
 
 // =============================================================
-// 🧠 AI UPGRADE — real path-analysis engine (replaces the old
-// single-step-lookahead "hacker" trick with genuine board-wide search)
+// 🧠 ENHANCED AI ENGINE — REAL-TIME PATH ANALYSIS & DECISION
 // =============================================================
 
-// Every legal one-move destination for `turn` (straight step, or a straight jump
-// over the opponent when they sit directly adjacent). Lets the bot jump too.
 function getLegalMoveOptions(turn) {
     let loc = playerPieces[turn];
     let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
@@ -568,6 +565,15 @@ function getLegalMoveOptions(turn) {
             let jr = nr + d.r; let jc = nc + d.c;
             if (jr >= 0 && jr < GRID_SIZE && jc >= 0 && jc < GRID_SIZE && !isWallBlocking(nr, nc, jr, jc)) {
                 options.push({ r: jr, c: jc });
+            } else {
+                // Diagonal jump checks when straight jump is blocked by an edge or wall
+                let sideDirs = (d.r !== 0) ? [{r:0, c:-1}, {r:0, c:1}] : [{r:-1, c:0}, {r:1, c:0}];
+                for(let sd of sideDirs) {
+                    let dr = nr + sd.r; let dc = nc + sd.c;
+                    if (dr >= 0 && dr < GRID_SIZE && dc >= 0 && dc < GRID_SIZE && !isWallBlocking(nr, nc, dr, dc)) {
+                        options.push({ r: dr, c: dc });
+                    }
+                }
             }
         } else {
             options.push({ r: nr, c: nc });
@@ -576,7 +582,6 @@ function getLegalMoveOptions(turn) {
     return options;
 }
 
-// Every currently-empty wall slot on the board.
 function enumerateWallCandidates() {
     let candidates = [];
     for (let r = 0; r < GRID_SIZE - 1; r++) {
@@ -588,15 +593,13 @@ function enumerateWallCandidates() {
     return candidates;
 }
 
-// The bot's "brain": temporarily place every possible wall, measure exactly how much
-// it lengthens the human's road vs the bot's own road, then undo it and rank them.
-// This replaces the old "just block one square above the human" trick with a genuine
-// board-wide search, so the AI finds real chokepoints instead of an obvious single spot.
 function getScoredWallCandidates() {
     let candidatePool = enumerateWallCandidates();
     let humanBaseDist = getShortestPathDistance(playerPieces.p1, 0);
     let aiBaseDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
     let scored = [];
+
+    if (humanBaseDist === Infinity || aiBaseDist === Infinity) return [];
 
     for (let cand of candidatePool) {
         if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
@@ -605,8 +608,16 @@ function getScoredWallCandidates() {
         if (valid) {
             let newHumanDist = getShortestPathDistance(playerPieces.p1, 0);
             let newAiDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
-            let score = (newHumanDist - humanBaseDist) - (newAiDist - aiBaseDist);
-            scored.push({ cand, score });
+            
+            let humanDelay = newHumanDist - humanBaseDist;
+            let aiDelay = newAiDist - aiBaseDist;
+            
+            // Strategic matrix evaluation: Prioritize hurting human path over hurting AI path
+            let score = (humanDelay * 2.5) - (aiDelay * 3.0);
+            
+            if (humanDelay > 0 || score > 0) {
+                scored.push({ cand, score, humanDelay });
+            }
         }
 
         if (cand.type === 'h') hWalls[cand.r][cand.c] = null; else vWalls[cand.r][cand.c] = null;
@@ -621,14 +632,14 @@ function executeAdvancedEngineAI() {
 
     let blockProbability = 0.5;
     if (aiDifficulty === 'beginner') blockProbability = 0.15;
-    else if (aiDifficulty === 'intermediate') blockProbability = 0.5;
-    else if (aiDifficulty === 'pro') blockProbability = 0.8;
-    else if (aiDifficulty === 'god') blockProbability = 0.95;
-    else if (aiDifficulty === 'hacker') blockProbability = 0.99; // 💀 near-optimal every turn
+    else if (aiDifficulty === 'intermediate') blockProbability = 0.45;
+    else if (aiDifficulty === 'pro') blockProbability = 0.75;
+    else if (aiDifficulty === 'god') blockProbability = 0.90;
+    else if (aiDifficulty === 'hacker') blockProbability = 0.98;
 
     if (Math.random() < blockProbability) {
         let scored = getScoredWallCandidates();
-        let beneficial = scored.filter(s => s.score > 0);
+        let beneficial = scored.filter(s => s.humanDelay > 0 && s.score > -2);
         let chosen = null;
 
         if (beneficial.length > 0) {
@@ -638,14 +649,13 @@ function executeAdvancedEngineAI() {
                 let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.4));
                 chosen = beneficial[Math.floor(Math.random() * poolSize)];
             } else if (aiDifficulty === 'pro') {
-                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.15));
+                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.2));
                 chosen = beneficial[Math.floor(Math.random() * poolSize)];
             } else if (aiDifficulty === 'god') {
                 let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.05));
                 chosen = beneficial[Math.floor(Math.random() * poolSize)];
             } else {
-                // hacker: always the single best wall the AI can find on the whole board.
-                chosen = beneficial[0];
+                chosen = beneficial[0]; // Absolute optimal calculation for hacker
             }
         }
 
@@ -672,7 +682,6 @@ function executeAdvancedEngineAI() {
     }
 
     if (!actionTaken) {
-        // Extremely rare fallback (bot fully boxed in) — place any valid wall so a turn always happens.
         let scored = getScoredWallCandidates();
         if (scored.length > 0) {
             let cand = scored[0].cand;
@@ -683,6 +692,10 @@ function executeAdvancedEngineAI() {
 
     evaluateTurnShiftOffline(false);
 }
+
+// =============================================================
+// VISUAL EFFECTS & CANVAS SYSTEM
+// =============================================================
 
 function startCelebrationCanvas() {
     stopCelebrationCanvas();
