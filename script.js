@@ -1,3 +1,8 @@
+// ==========================================
+// 🛠️ MAINTENANCE SWITCH CONTROLLER
+// ==========================================
+const MAINTENANCE_SWITCH = true; // 🔴 Turn 'true' to block game, 'false' to run normal.
+
 const GRID_SIZE = 8; 
 
 const P1_COLOR = '#ff5252'; 
@@ -8,7 +13,6 @@ let myRole = 'p1';
 let activeTurn = 'p1'; 
 let aiDifficulty = 'medium'; 
 
-// 👤 Global Identity Handles 
 let myPlayerName = "PLAYER";
 let opponentPlayerName = "OPPONENT";
 
@@ -26,7 +30,23 @@ let networkConnection = null;
 let firecrackerInterval = null;
 const cloudBrokerPrefix = "BLKD-X8-"; 
 
+// Run when DOM is loaded to verify System State
+window.addEventListener('DOMContentLoaded', () => {
+    if (MAINTENANCE_SWITCH) {
+        // Force trigger Maintenance Banner and lock routing
+        showScreen('maintenance-screen');
+    } else {
+        // Boot normal game menu
+        showScreen('menu-screen');
+    }
+});
+
 function showScreen(screenId) {
+    // If maintenance is true, never allow switching away from maintenance screen
+    if (MAINTENANCE_SWITCH && screenId !== 'maintenance-screen') {
+        return;
+    }
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     if(screenId !== 'victory-screen') stopCelebrationCanvas();
@@ -39,6 +59,7 @@ function showScreen(screenId) {
 }
 
 function toggleModal(modalId, isOpen) {
+    if (MAINTENANCE_SWITCH) return; // Block actions during maintenance
     document.getElementById(modalId).style.display = isOpen ? 'flex' : 'none';
 }
 
@@ -69,7 +90,6 @@ function generate5BitCode() {
     return text;
 }
 
-// Sandbox Registration Sequence
 function submitSandboxHostAndGenerate() {
     let hostInput = document.getElementById('sandbox-host-name').value.trim();
     myPlayerName = hostInput.length === 0 ? "HOST" : hostInput.toUpperCase();
@@ -200,10 +220,12 @@ function disconnectPeer() {
 function setupFreshMatch() {
     activeTurn = 'p1'; 
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
-
-    // 🔓 WALL LIMIT RULES
-    // ALL wall limits removed across every mode (Pass & Play, VS AI, Online, Sandbox) — as requested.
-    wallInventory = { p1: Infinity, p2: Infinity };
+    
+    if(gameMode === 'pass') {
+        wallInventory = { p1: 20, p2: 20 };
+    } else {
+        wallInventory = { p1: 10, p2: 10 };
+    }
 
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -220,11 +242,11 @@ function triggerTimedRuleNotice() {
     if(!noticeBox || !noticeText) return;
 
     if(gameMode === 'pass') {
-        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nUNLIMITED WALLS FOR BOTH PLAYERS!\n\nMIND YOUR STEPS NO MOVE IS REVERTED!";
+        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nNO PLACEMENTS CAN BE REFUNDED!";
     } else if(gameMode === 'ai') {
-        noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\nUNLIMITED WALLS FOR BOTH SIDES!\n\nMAKE STEPS COUNT!`;
+        noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\n10 WALLS CAPACITY CAP ASSIGNED.\n\nMAKE STEPS COUNT!`;
     } else {
-        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nUNLIMITED WALLS FOR BOTH PLAYERS!\n\nMIND YOUR STEPS NO TURNS CAN BE REVERTED!";
+        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nNO TURNS CAN BE REVERTED!";
     }
 
     noticeBox.classList.remove('hide');
@@ -255,18 +277,13 @@ function resetTurnTimer() {
     }, 1000);
 }
 
-// Small helper so "unlimited" walls display nicely instead of the word "Infinity"
-function formatWallCount(value) {
-    return value === Infinity ? '∞' : value;
-}
-
 function renderEngine() {
     const board = document.getElementById('game-board');
     if (!board) return; 
     board.innerHTML = '';
 
-    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = formatWallCount(wallInventory.p1);
-    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = formatWallCount(wallInventory.p2);
+    if(document.getElementById('p1-walls-left')) document.getElementById('p1-walls-left').innerText = wallInventory.p1;
+    if(document.getElementById('p2-walls-left')) document.getElementById('p2-walls-left').innerText = wallInventory.p2;
 
     for(let displayR=0; displayR<GRID_SIZE; displayR++) {
         for(let displayC=0; displayC<GRID_SIZE; displayC++) {
@@ -316,57 +333,13 @@ function renderEngine() {
     updateHeaderIndicator();
 }
 
-// 🎯 Checks whether tapping (tarR, tarC) would be a legal MOVE for `turn`'s piece,
-// without actually committing anything. Used to make sure a tap on a valid
-// forward/side move cell always moves the piece, instead of accidentally
-// being swallowed by the wall-placement edge-zone logic below.
-function isLegalMoveTarget(turn, tarR, tarC) {
-    let loc = playerPieces[turn];
-    let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
-
-    let dr = tarR - loc.r; let dc = tarC - loc.c;
-    let absDr = Math.abs(dr); let absDc = Math.abs(dc);
-
-    if ((absDr === 1 && dc === 0) || (dr === 0 && absDc === 1)) {
-        if (isWallBlocking(loc.r, loc.c, tarR, tarC)) return false;
-        if (opp.r === tarR && opp.c === tarC) return false;
-        return true;
-    }
-    if (absDr === 2 && dc === 0) {
-        let midR = loc.r + (dr / 2);
-        if (opp.r === midR && opp.c === loc.c) {
-            if (isWallBlocking(loc.r, loc.c, midR, loc.c) || isWallBlocking(midR, loc.c, tarR, tarC)) return false;
-            return true;
-        }
-    }
-    if (dr === 0 && absDc === 2) {
-        let midC = loc.c + (dc / 2);
-        if (opp.r === loc.r && opp.c === midC) {
-            if (isWallBlocking(loc.r, loc.c, loc.r, midC) || isWallBlocking(loc.r, midC, tarR, tarC)) return false;
-            return true;
-        }
-    }
-    return false;
-}
-
 function handleSmartCellTouch(e, r, c) {
     if((gameMode === 'host' || gameMode === 'client') && activeTurn !== myRole) return;
     if(gameMode === 'ai' && activeTurn === 'p2') return;
 
-    // ✅ MISS-TAP FIX (part 1): if the tapped cell is a legal move destination for the
-    // current player's piece, ALWAYS move there — no matter where inside the cell the
-    // tap landed. This stops "I tapped the green forward cell but a wall got placed".
-    if (isLegalMoveTarget(activeTurn, r, c)) {
-        processPieceMovement(r, c);
-        return;
-    }
-
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-    // ✅ MISS-TAP FIX (part 2): shrunk from 0.35 → 0.2. The old value made 70% of every
-    // cell count as a "wall edge", leaving only a tiny 30% center zone for movement,
-    // which is what caused most accidental wall placements on mobile taps.
-    const edgeThreshold = rect.width * 0.2; 
+    const edgeThreshold = rect.width * 0.35; 
 
     let hasWallsLeft = wallInventory[activeTurn] > 0;
 
@@ -380,10 +353,7 @@ function handleSmartCellTouch(e, r, c) {
             if (y < edgeThreshold && r > 0) { commitDirectWall('h', r - 1, c); return; }
             if (y > (rect.height - edgeThreshold) && r < GRID_SIZE - 1) { commitDirectWall('h', r, c); return; }
             if (x < edgeThreshold && c > 0) { commitDirectWall('v', r, c - 1); return; }
-            // ✅ MISS-TAP FIX (part 3): this was `commitDirectWall('v', r, c - 1)` — a copy/paste
-            // bug that placed the wall on the LEFT side of the cell even when the player
-            // tapped the RIGHT edge. Corrected to reference the cell's own right-side wall (c).
-            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c); return; }
+            if (x > (rect.width - edgeThreshold) && c < GRID_SIZE - 1) { commitDirectWall('v', r, c - 1); return; }
         }
     }
     processPieceMovement(r, c);
@@ -479,7 +449,6 @@ function getShortestPathDistance(startPos, targetRow) {
     return Infinity;
 }
 
-// Validation Route Check
 function hasValidPath(startPos, targetRow) { return getShortestPathDistance(startPos, targetRow) !== Infinity; }
 
 function processPieceMovement(tarR, tarC) {
@@ -553,139 +522,50 @@ function launchVictorySequence(winningRole) {
     }
 }
 
-// 🤖 AI UPGRADE — Helper 1: enumerate every legal one-move destination for a piece
-// (straight step, or a straight jump over the opponent when they're directly adjacent).
-// Used only for the bot's own decision-making, so it never changes human movement rules.
-function getLegalMoveOptions(turn) {
-    let loc = playerPieces[turn];
-    let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
-    let options = [];
-    let dirs = [{r: -1, c: 0}, {r: 1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}];
-
-    for (let d of dirs) {
-        let nr = loc.r + d.r; let nc = loc.c + d.c;
-        if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) continue;
-        if (isWallBlocking(loc.r, loc.c, nr, nc)) continue;
-
-        if (opp.r === nr && opp.c === nc) {
-            // Opponent sits right next to us — try to jump straight over them.
-            let jr = nr + d.r; let jc = nc + d.c;
-            if (jr >= 0 && jr < GRID_SIZE && jc >= 0 && jc < GRID_SIZE && !isWallBlocking(nr, nc, jr, jc)) {
-                options.push({ r: jr, c: jc });
-            }
-        } else {
-            options.push({ r: nr, c: nc });
-        }
-    }
-    return options;
-}
-
-// 🤖 AI UPGRADE — Helper 2: list every currently-empty wall slot on the board.
-function enumerateWallCandidates() {
-    let candidates = [];
-    for (let r = 0; r < GRID_SIZE - 1; r++) {
-        for (let c = 0; c < GRID_SIZE - 1; c++) {
-            if (hWalls[r][c] === null) candidates.push({ type: 'h', r, c });
-            if (vWalls[r][c] === null) candidates.push({ type: 'v', r, c });
-        }
-    }
-    return candidates;
-}
-
-// 🤖 AI UPGRADE — Helper 3: for every candidate wall, temporarily place it, measure how
-// much it lengthens the human's path vs the bot's own path, then undo it. This is the
-// core "brain" that lets the bot pick genuinely smart wall placements instead of just
-// slapping a wall directly above the human.
-function getScoredWallCandidates() {
-    let candidatePool = enumerateWallCandidates();
-    let humanBaseDist = getShortestPathDistance(playerPieces.p1, 0);
-    let aiBaseDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
-    let scored = [];
-
-    for (let cand of candidatePool) {
-        if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
-
-        let valid = hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1);
-        if (valid) {
-            let newHumanDist = getShortestPathDistance(playerPieces.p1, 0);
-            let newAiDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
-            // Score = how much longer we make the human's road, minus how much longer we make our own.
-            let score = (newHumanDist - humanBaseDist) - (newAiDist - aiBaseDist);
-            scored.push({ cand, score });
-        }
-
-        if (cand.type === 'h') hWalls[cand.r][cand.c] = null; else vWalls[cand.r][cand.c] = null;
-    }
-
-    scored.sort((a, b) => b.score - a.score);
-    return scored;
-}
-
 function execute4LevelEngineAI() {
+    let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
-    // Harder difficulty = higher chance to consider a wall AND smarter selection of which wall.
     let blockProbability = 0;
-    if (aiDifficulty === 'easy') blockProbability = 0.15;
-    else if (aiDifficulty === 'medium') blockProbability = 0.50;
-    else if (aiDifficulty === 'hard') blockProbability = 0.80;
-    else if (aiDifficulty === 'extreme') blockProbability = 0.97; // 💀 near-optimal, very aggressive
+    if (aiDifficulty === 'easy') blockProbability = 0.05;
+    else if (aiDifficulty === 'medium') blockProbability = 0.40;
+    else if (aiDifficulty === 'hard') blockProbability = 0.75;
+    else if (aiDifficulty === 'extreme') blockProbability = 0.95;
 
-    if (Math.random() < blockProbability) {
-        let scored = getScoredWallCandidates();
-        let beneficial = scored.filter(s => s.score > 0);
-        let chosen = null;
-
-        if (beneficial.length > 0) {
-            if (aiDifficulty === 'easy') {
-                // Weak: picks basically any beneficial wall at random, no real strategy.
-                chosen = beneficial[Math.floor(Math.random() * beneficial.length)];
-            } else if (aiDifficulty === 'medium') {
-                // Decent: usually picks from the better half, with some unpredictability.
-                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.4));
-                chosen = beneficial[Math.floor(Math.random() * poolSize)];
-            } else if (aiDifficulty === 'hard') {
-                // Strong: almost always near the best option available.
-                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.15));
-                chosen = beneficial[Math.floor(Math.random() * poolSize)];
-            } else {
-                // Extreme: always takes the single best wall on the board. No mercy. 💀
-                chosen = beneficial[0];
-            }
-        }
-
-        if (chosen) {
-            let cand = chosen.cand;
-            if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
-            actionTaken = true;
-            triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+    if (Math.random() < blockProbability && human.r > 1) {
+        let blockR = human.r - 1; let blockC = human.c;
+        if (hWalls[blockR][blockC] === null) {
+            hWalls[blockR][blockC] = P2_COLOR;
+            if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
+                actionTaken = true; wallInventory.p2--; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+            } else { hWalls[blockR][blockC] = null; }
         }
     }
 
     if (!actionTaken) {
-        let options = getLegalMoveOptions('p2');
-        if (options.length > 0) {
-            if (aiDifficulty === 'easy') {
-                // Weak movement: mostly random, doesn't reliably chase the shortest path.
-                options.sort(() => Math.random() - 0.5);
-            } else {
-                // Medium/Hard/Extreme: always advance along the true shortest path,
-                // now correctly considering jumps over the human too.
-                options.sort((a, b) => getShortestPathDistance(a, GRID_SIZE - 1) - getShortestPathDistance(b, GRID_SIZE - 1));
+        let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
+        if(aiDifficulty === 'easy') { validSteps.sort(() => Math.random() - 0.5); } 
+        else {
+            validSteps.sort((a, b) => {
+                let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
+                let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
+                return distA - distB;
+            });
+        }
+
+        for (let step of validSteps) {
+            if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
+                if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
+                    playerPieces.p2 = step; actionTaken = true; break;
+                }
             }
-            playerPieces.p2 = options[0];
-            actionTaken = true;
         }
     }
 
     if (!actionTaken) {
-        // Extremely rare fallback (bot fully boxed in with no moves) — just place any valid wall.
-        let scored = getScoredWallCandidates();
-        if (scored.length > 0) {
-            let cand = scored[0].cand;
-            if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
-            actionTaken = true;
-        }
+        let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
+        if (hWalls[rr][rc] === null && wallInventory.p2 > 0) { hWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
+        else if (vWalls[rr][rc] === null && wallInventory.p2 > 0) { vWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
     }
 
     evaluateTurnShiftOffline(false);
