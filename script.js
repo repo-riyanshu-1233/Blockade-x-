@@ -199,20 +199,11 @@ function disconnectPeer() {
 
 function setupFreshMatch() {
     activeTurn = 'p1'; 
-    playerPieces = { r: GRID_SIZE - 1, c: 3 };
     playerPieces = { p1: { r: GRID_SIZE - 1, c: 3 }, p2: { r: 0, c: 4 } };
 
     // 🔓 WALL LIMIT RULES
-    // - Pass & Play: kept generous (20 each), unchanged.
-    // - VS AI: NO LIMIT for both Player (p1) and Bot (p2) — as requested.
-    // - Online modes: kept at 10 each (competitive balance), unchanged.
-    if(gameMode === 'pass') {
-        wallInventory = { p1: 20, p2: 20 };
-    } else if(gameMode === 'ai') {
-        wallInventory = { p1: Infinity, p2: Infinity };
-    } else {
-        wallInventory = { p1: 10, p2: 10 };
-    }
+    // ALL wall limits removed across every mode (Pass & Play, VS AI, Online, Sandbox) — as requested.
+    wallInventory = { p1: Infinity, p2: Infinity };
 
     hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -229,11 +220,11 @@ function triggerTimedRuleNotice() {
     if(!noticeBox || !noticeText) return;
 
     if(gameMode === 'pass') {
-        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nEACH USER ALLOCATED 20 STRATEGIC WALLS TOTAL.\n\nMIMD YOUR STEPS NO MOVE IS REVERTED!";
+        noticeText.innerText = "LOCAL PASS & PLAY ACTIVE.\n\nUNLIMITED WALLS FOR BOTH PLAYERS!\n\nMIND YOUR STEPS NO MOVE IS REVERTED!";
     } else if(gameMode === 'ai') {
         noticeText.innerText = `VS BOT ARENA ACTIVE (${aiDifficulty.toUpperCase()}).\n\nUNLIMITED WALLS FOR BOTH SIDES!\n\nMAKE STEPS COUNT!`;
     } else {
-        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nLIMITED STRATEGY RUN: ONLY 10 WALLS ALLOWED.\n\nMIND YOUR STEPS NO TURNS CAN BE REVERTED!";
+        noticeText.innerText = "COMPETITIVE ONLINE POOL ACTIVE.\n\nUNLIMITED WALLS FOR BOTH PLAYERS!\n\nMIND YOUR STEPS NO TURNS CAN BE REVERTED!";
     }
 
     noticeBox.classList.remove('hide');
@@ -562,50 +553,139 @@ function launchVictorySequence(winningRole) {
     }
 }
 
+// 🤖 AI UPGRADE — Helper 1: enumerate every legal one-move destination for a piece
+// (straight step, or a straight jump over the opponent when they're directly adjacent).
+// Used only for the bot's own decision-making, so it never changes human movement rules.
+function getLegalMoveOptions(turn) {
+    let loc = playerPieces[turn];
+    let opp = playerPieces[(turn === 'p1') ? 'p2' : 'p1'];
+    let options = [];
+    let dirs = [{r: -1, c: 0}, {r: 1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}];
+
+    for (let d of dirs) {
+        let nr = loc.r + d.r; let nc = loc.c + d.c;
+        if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) continue;
+        if (isWallBlocking(loc.r, loc.c, nr, nc)) continue;
+
+        if (opp.r === nr && opp.c === nc) {
+            // Opponent sits right next to us — try to jump straight over them.
+            let jr = nr + d.r; let jc = nc + d.c;
+            if (jr >= 0 && jr < GRID_SIZE && jc >= 0 && jc < GRID_SIZE && !isWallBlocking(nr, nc, jr, jc)) {
+                options.push({ r: jr, c: jc });
+            }
+        } else {
+            options.push({ r: nr, c: nc });
+        }
+    }
+    return options;
+}
+
+// 🤖 AI UPGRADE — Helper 2: list every currently-empty wall slot on the board.
+function enumerateWallCandidates() {
+    let candidates = [];
+    for (let r = 0; r < GRID_SIZE - 1; r++) {
+        for (let c = 0; c < GRID_SIZE - 1; c++) {
+            if (hWalls[r][c] === null) candidates.push({ type: 'h', r, c });
+            if (vWalls[r][c] === null) candidates.push({ type: 'v', r, c });
+        }
+    }
+    return candidates;
+}
+
+// 🤖 AI UPGRADE — Helper 3: for every candidate wall, temporarily place it, measure how
+// much it lengthens the human's path vs the bot's own path, then undo it. This is the
+// core "brain" that lets the bot pick genuinely smart wall placements instead of just
+// slapping a wall directly above the human.
+function getScoredWallCandidates() {
+    let candidatePool = enumerateWallCandidates();
+    let humanBaseDist = getShortestPathDistance(playerPieces.p1, 0);
+    let aiBaseDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
+    let scored = [];
+
+    for (let cand of candidatePool) {
+        if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
+
+        let valid = hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1);
+        if (valid) {
+            let newHumanDist = getShortestPathDistance(playerPieces.p1, 0);
+            let newAiDist = getShortestPathDistance(playerPieces.p2, GRID_SIZE - 1);
+            // Score = how much longer we make the human's road, minus how much longer we make our own.
+            let score = (newHumanDist - humanBaseDist) - (newAiDist - aiBaseDist);
+            scored.push({ cand, score });
+        }
+
+        if (cand.type === 'h') hWalls[cand.r][cand.c] = null; else vWalls[cand.r][cand.c] = null;
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored;
+}
+
 function execute4LevelEngineAI() {
-    let ai = playerPieces.p2; let human = playerPieces.p1;
     let actionTaken = false;
 
+    // Harder difficulty = higher chance to consider a wall AND smarter selection of which wall.
     let blockProbability = 0;
-    if (aiDifficulty === 'easy') blockProbability = 0.05;
-    else if (aiDifficulty === 'medium') blockProbability = 0.40;
-    else if (aiDifficulty === 'hard') blockProbability = 0.75;
-    else if (aiDifficulty === 'extreme') blockProbability = 0.95;
+    if (aiDifficulty === 'easy') blockProbability = 0.15;
+    else if (aiDifficulty === 'medium') blockProbability = 0.50;
+    else if (aiDifficulty === 'hard') blockProbability = 0.80;
+    else if (aiDifficulty === 'extreme') blockProbability = 0.97; // 💀 near-optimal, very aggressive
 
-    if (Math.random() < blockProbability && human.r > 1) {
-        let blockR = human.r - 1; let blockC = human.c;
-        if (hWalls[blockR][blockC] === null) {
-            hWalls[blockR][blockC] = P2_COLOR;
-            if (hasValidPath(playerPieces.p1, 0) && hasValidPath(playerPieces.p2, GRID_SIZE - 1)) {
-                actionTaken = true; wallInventory.p2--; triggerGameNotice("🤖 BOT PLACED A BARRIER!");
-            } else { hWalls[blockR][blockC] = null; }
-        }
-    }
+    if (Math.random() < blockProbability) {
+        let scored = getScoredWallCandidates();
+        let beneficial = scored.filter(s => s.score > 0);
+        let chosen = null;
 
-    if (!actionTaken) {
-        let validSteps = [{r: ai.r + 1, c: ai.c}, {r: ai.r, c: ai.c - 1}, {r: ai.r, c: ai.c + 1}, {r: ai.r - 1, c: ai.c}];
-        if(aiDifficulty === 'easy') { validSteps.sort(() => Math.random() - 0.5); } 
-        else {
-            validSteps.sort((a, b) => {
-                let distA = (a.r >= 0 && a.r < GRID_SIZE && a.c >= 0 && a.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, a.r, a.c)) ? getShortestPathDistance(a, GRID_SIZE - 1) : Infinity;
-                let distB = (b.r >= 0 && b.r < GRID_SIZE && b.c >= 0 && b.c < GRID_SIZE && !isWallBlocking(ai.r, ai.c, b.r, b.c)) ? getShortestPathDistance(b, GRID_SIZE - 1) : Infinity;
-                return distA - distB;
-            });
-        }
-
-        for (let step of validSteps) {
-            if (step.r >= 0 && step.r < GRID_SIZE && step.c >= 0 && step.c < GRID_SIZE) {
-                if (!isWallBlocking(ai.r, ai.c, step.r, step.c) && !(human.r === step.r && human.c === step.c)) {
-                    playerPieces.p2 = step; actionTaken = true; break;
-                }
+        if (beneficial.length > 0) {
+            if (aiDifficulty === 'easy') {
+                // Weak: picks basically any beneficial wall at random, no real strategy.
+                chosen = beneficial[Math.floor(Math.random() * beneficial.length)];
+            } else if (aiDifficulty === 'medium') {
+                // Decent: usually picks from the better half, with some unpredictability.
+                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.4));
+                chosen = beneficial[Math.floor(Math.random() * poolSize)];
+            } else if (aiDifficulty === 'hard') {
+                // Strong: almost always near the best option available.
+                let poolSize = Math.max(1, Math.ceil(beneficial.length * 0.15));
+                chosen = beneficial[Math.floor(Math.random() * poolSize)];
+            } else {
+                // Extreme: always takes the single best wall on the board. No mercy. 💀
+                chosen = beneficial[0];
             }
         }
+
+        if (chosen) {
+            let cand = chosen.cand;
+            if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
+            actionTaken = true;
+            triggerGameNotice("🤖 BOT PLACED A BARRIER!");
+        }
     }
 
     if (!actionTaken) {
-        let rr = Math.floor(Math.random() * (GRID_SIZE - 1)); let rc = Math.floor(Math.random() * (GRID_SIZE - 1));
-        if (hWalls[rr][rc] === null && wallInventory.p2 > 0) { hWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
-        else if (vWalls[rr][rc] === null && wallInventory.p2 > 0) { vWalls[rr][rc] = P2_COLOR; wallInventory.p2--; }
+        let options = getLegalMoveOptions('p2');
+        if (options.length > 0) {
+            if (aiDifficulty === 'easy') {
+                // Weak movement: mostly random, doesn't reliably chase the shortest path.
+                options.sort(() => Math.random() - 0.5);
+            } else {
+                // Medium/Hard/Extreme: always advance along the true shortest path,
+                // now correctly considering jumps over the human too.
+                options.sort((a, b) => getShortestPathDistance(a, GRID_SIZE - 1) - getShortestPathDistance(b, GRID_SIZE - 1));
+            }
+            playerPieces.p2 = options[0];
+            actionTaken = true;
+        }
+    }
+
+    if (!actionTaken) {
+        // Extremely rare fallback (bot fully boxed in with no moves) — just place any valid wall.
+        let scored = getScoredWallCandidates();
+        if (scored.length > 0) {
+            let cand = scored[0].cand;
+            if (cand.type === 'h') hWalls[cand.r][cand.c] = P2_COLOR; else vWalls[cand.r][cand.c] = P2_COLOR;
+            actionTaken = true;
+        }
     }
 
     evaluateTurnShiftOffline(false);
