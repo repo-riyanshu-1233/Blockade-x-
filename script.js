@@ -1,7 +1,7 @@
 // ==========================================
 // 🛠️ MAINTENANCE SWITCH CONTROLLER
 // ==========================================
-const MAINTENANCE_SWITCH = true; 
+const MAINTENANCE_SWITCH = false; 
 
 const GRID_SIZE = 8; 
 
