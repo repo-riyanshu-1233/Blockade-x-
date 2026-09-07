@@ -1,7 +1,4 @@
-// ==========================================
-// 🛠️ MAINTENANCE SWITCH CONTROLLER
-// ==========================================
-const MAINTENANCE_SWITCH =false; 
+const MAINTENANCE_SWITCH =true; 
 
 const GRID_SIZE = 8; 
 
@@ -18,7 +15,6 @@ let opponentPlayerName = "OPPONENT";
 
 let playerPieces = { p1: { r: 7, c: 3 }, p2: { r: 0, c: 4 } };
 
-// GLOBALLY UNLIMITED WALL ENGINES
 let hWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 let vWalls = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
 
