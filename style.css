@@ -55,7 +55,6 @@ body {
 .pixel-btn.red { background: linear-gradient(to bottom, var(--pixel-red-top) 50%, var(--pixel-red-bot) 50%); color: white; border-color: var(--pixel-red-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 4px 0px black; }
 .pixel-btn.grey { background: linear-gradient(to bottom, var(--pixel-grey-top) 50%, var(--pixel-grey-bot) 50%); color: white; border-color: var(--pixel-grey-border); box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), 0 0px 0px black; }
 
-/* ⚡ PREMIUM CYBER PUNK HACKER BUTTON STYLE */
 .pixel-btn.hacker-cyber {
     background: linear-gradient(to bottom, #000000 50%, #1a0000 50%);
     color: #ff3333;
@@ -73,19 +72,15 @@ body {
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
 
 .pixel-board-wrap { 
-    background: #080f1a; padding: 10px; border: 4px solid #1c3254; 
-    box-shadow: 6px 6px 0px black; position: relative; margin: 10px auto; 
-    width: 90vw; max-width: 440px; box-sizing: border-box; display: block !important;
+    background: #080f1a; padding: 8px; border: 4px solid #1c3254; 
+    box-shadow: 6px 6px 0px black; position: relative; margin: 5px auto; 
+    width: 92vw; max-width: 480px; box-sizing: border-box; display: block !important;
 }
 
 #game-board { 
     display: grid !important; 
-    grid-template-columns: repeat(8, 1fr) !important; 
-    grid-template-rows: repeat(8, 1fr) !important; 
-    background: #0f1826;
-    /* 🟢 THICKER TAP-FRIENDLY GAP: raised from 4px so the wall zone between cells is
-       bigger and easier to hit precisely on mobile (matches the JS edgeThreshold). */
-    gap: 10px;
+    background: #000000;
+    gap: 0px;
     width: 100%; aspect-ratio: 1 / 1; position: relative; 
 }
 
@@ -95,8 +90,41 @@ body {
     width: 100%; height: 100%; box-sizing: border-box;
 }
 
-.cell.goal-row-glow { background-color: rgba(142, 220, 58, 0.12) !important; box-shadow: inset 0 0 8px rgba(142, 220, 58, 0.3) !important; }
-.cell.start-row-glow { background-color: rgba(255, 155, 19, 0.08) !important; box-shadow: inset 0 0 6px rgba(255, 155, 19, 0.2) !important; }
+.grid-line {
+    background: #111d2e;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+.grid-line:hover {
+    background: #25426b;
+}
+.grid-line.horizontal {
+    width: 100%; height: 100%;
+}
+.grid-line.vertical {
+    width: 100%; height: 100%;
+}
+.grid-line.intersection {
+    background: #080f1a;
+    cursor: default;
+}
+
+.grid-line.placed-wall {
+    z-index: 10;
+}
+
+.cell.glow-top { box-shadow: inset 0 8px 6px -4px #00beff !important; }
+.cell.glow-bottom { box-shadow: inset 0 -8px 6px -4px #ff5252 !important; }
+.cell.glow-left { box-shadow: inset 8px 0 6px -4px #8edc3a !important; }
+.cell.glow-right { box-shadow: inset -8px 0 6px -4px #ff9b13 !important; }
+
+.cell.glow-center {
+    background-color: #fff8d6 !important;
+    border: 2px solid #ffcc00 !important;
+    box-shadow: inset 0 0 10px #ff9b13, 0 0 12px #ffcc00 !important;
+    border-radius: 6px;
+}
 
 .game-piece { 
     width: 75%; height: 75%; border-radius: 50%; z-index: 5; 
@@ -105,12 +133,6 @@ body {
 }
 
 @keyframes piecePopIn { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-
-.visual-wall { position: absolute; z-index: 15; pointer-events: none; border: 1px solid rgba(0, 0, 0, 0.3); }
-/* 🟢 THICKER WALL BARS: raised from 8px to fill the new, wider gap so placed walls are
-   clearly visible and visually match the bigger tap zone. */
-.visual-wall.h-wall { width: 100%; height: 14px; left: 0; }
-.visual-wall.v-wall { height: 100%; width: 14px; top: 0; }
 
 .timer-box {
     font-size: 0.65rem; background: #000000; padding: 6px 12px;
@@ -129,7 +151,7 @@ body {
 .score-tag-retro { font-size: 0.55rem; background: #12213a; padding: 6px 10px; border: 2px dashed #00beff; color: #00beff; }
 
 .live-turn-console { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; margin-top: 8px; gap: 6px; }
-.turn-highlight-banner { width: 100%; text-align: center; padding: 10px; font-size: 0.85rem; font-weight: bold; background: #12213a; border: 3px solid #ff5252; color: #ffffff; box-shadow: 4px 4px 0px black; box-sizing: border-box; }
+.turn-highlight-banner { width: 100%; text-align: center; padding: 10px; font-size: 0.8rem; font-weight: bold; background: #12213a; border: 3px solid #ff5252; color: #ffffff; box-shadow: 4px 4px 0px black; box-sizing: border-box; }
 .turn-highlight-banner.pulse-active { animation: bannerPulse 1.4s infinite ease-in-out; }
 @keyframes bannerPulse { 0% { transform: scale(1); } 50% { transform: scale(1.01); } 100% { transform: scale(1); } }
 
@@ -151,3 +173,20 @@ body {
 
 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
 .modal-card { max-width: 360px; width: 100%; }
+
+.lobby-player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 6px 0;
+    background: #0f1826;
+    border: 2px solid #1c3254;
+    font-size: 0.65rem;
+}
+.player-badge {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+}
