@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blockade X - Red vs Blue</title>
+    <title>Blockade X - Red vs Blue vs Green vs Yellow</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -25,15 +25,14 @@
 
     <div id="game-toast" class="toast-popup hide">⚠️ SYSTEM ACTIVE</div>
 
-  
     <div id="menu-screen" class="screen">
         <h1 class="game-title">BLOCKADE X</h1>
         <p class="game-subtitle">Created by riyanshu sinh </p>
         
         <div class="menu-buttons">
-            <button class="pixel-btn green" onclick="launchDirectGame('pass')">PASS & PLAY</button>
-            <button class="pixel-btn blue" onclick="showScreen('ai-menu-screen')">VS AI ROBOT 🤖</button>
-            <button class="pixel-btn red" onclick="showScreen('online-name-screen')">ONLINE PVP (RANDOM)</button>
+            <button class="pixel-btn green" onclick="showScreen('pass-select-screen')">PASS & PLAY</button>
+            <button class="pixel-btn blue" onclick="showScreen('ai-mode-select-screen')">VS AI ROBOT 🤖</button>
+            <button class="pixel-btn red" onclick="showScreen('online-mode-select-screen')">ONLINE PVP (RANDOM)</button>
             <button class="pixel-btn grey" style="background:#1c3254" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
 
@@ -48,71 +47,119 @@
         </div>
     </div>
 
-    
+    <div id="pass-select-screen" class="screen">
+        <h2 class="screen-title">PASS & PLAY MODE</h2>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="launchDirectGame('pass', 2)">2 PLAYERS (8x8)</button>
+            <button class="pixel-btn orange" onclick="launchDirectGame('pass', 4)">4 PLAYERS (11x11)</button>
+            <button class="pixel-btn red compact" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+    </div>
+
+    <div id="ai-mode-select-screen" class="screen">
+        <h2 class="screen-title">SELECT AI ARENA</h2>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="openAIDifficultyScreen(2)">2 PLAYERS (VS 1 BOT)</button>
+            <button class="pixel-btn orange" onclick="openAIDifficultyScreen(4)">4 PLAYERS (VS 3 BOTS)</button>
+            <button class="pixel-btn red compact" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+    </div>
+
     <div id="ai-menu-screen" class="screen">
-        <h2 class="screen-title">BOT DIFFICULTY</h2>
+        <h2 class="screen-title" id="ai-menu-title">BOT DIFFICULTY</h2>
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="launchAIGame('beginner')">BEGINNER</button>
             <button class="pixel-btn blue" onclick="launchAIGame('intermediate')">INTERMEDIATE</button>
             <button class="pixel-btn orange" onclick="launchAIGame('pro')">PRO MODE</button>
             <button class="pixel-btn red" onclick="launchAIGame('god')">GOD MODE 💀</button>
             <button class="pixel-btn hacker-cyber" onclick="launchAIGame('hacker')">HACKER MODE ⚡</button>
-            <button class="pixel-btn compact grey" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
+            <button class="pixel-btn compact grey" style="margin-top:10px;" onclick="showScreen('ai-mode-select-screen')">BACK</button>
         </div>
     </div>
 
-    
+    <div id="online-mode-select-screen" class="screen">
+        <h2 class="screen-title">ONLINE PVP MATCH</h2>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="openOnlineNameInput(2)">2 PLAYERS MATCH</button>
+            <button class="pixel-btn orange" onclick="openOnlineNameInput(4)">4 PLAYERS MATCH</button>
+            <button class="pixel-btn red compact" style="margin-top:10px;" onclick="showScreen('menu-screen')">BACK</button>
+        </div>
+    </div>
+
     <div id="online-name-screen" class="screen">
         <h2 class="screen-title">ENTER OPERATOR TAG</h2>
         <div class="pixel-card input-card">
             <input type="text" id="online-player-name" placeholder="YOUR NAME" maxlength="10" value="PLAYER">
         </div>
         <button class="pixel-btn orange" style="margin-top:20px;" onclick="submitNameAndFindMatch()">FIND MATCH ⚔️</button>
-        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('menu-screen')">BACK</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('online-mode-select-screen')">BACK</button>
     </div>
 
- 
     <div id="sandbox-menu-screen" class="screen">
         <h2 class="screen-title">SANDBOX HUBS</h2>
         <div class="menu-buttons">
-            <button class="pixel-btn green" onclick="showScreen('sandbox-host-name-screen')">CREATE 5-CH CODE</button>
-            <button class="pixel-btn blue" onclick="showScreen('sandbox-join-screen')">ENTER 5-CH CODE</button>
+            <button class="pixel-btn green" onclick="openSandboxConfig(2)">2 PLAYERS ROOM</button>
+            <button class="pixel-btn orange" onclick="openSandboxConfig(4)">4 PLAYERS ROOM</button>
             <button class="pixel-btn red compact" onclick="showScreen('menu-screen')">BACK</button>
         </div>
     </div>
 
-    
+    <div id="sandbox-action-screen" class="screen">
+        <h2 class="screen-title" id="sandbox-action-title">SANDBOX OPTION</h2>
+        <div class="menu-buttons">
+            <button class="pixel-btn green" onclick="showScreen('sandbox-host-name-screen')">CREATE CODE</button>
+            <button class="pixel-btn blue" onclick="showScreen('sandbox-join-screen')">ENTER CODE</button>
+            <button class="pixel-btn red compact" onclick="showScreen('sandbox-menu-screen')">BACK</button>
+        </div>
+    </div>
+
     <div id="sandbox-host-name-screen" class="screen">
         <h2 class="screen-title">HOST OPERATOR TAG</h2>
         <div class="pixel-card input-card">
             <input type="text" id="sandbox-host-name" placeholder="HOST NAME" maxlength="10" value="HOST">
         </div>
         <button class="pixel-btn green" style="margin-top:20px;" onclick="submitSandboxHostAndGenerate()">GENERATE CODE 🚀</button>
-        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-menu-screen')">BACK</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-action-screen')">BACK</button>
     </div>
 
-   
     <div id="sandbox-host-screen" class="screen">
-        <h2 class="screen-title">ROOM HOOKED</h2>
+        <h2 class="screen-title">ROOM LOBBY</h2>
         <div class="pixel-card">
             <p style="font-size: 10px; margin-bottom: 15px;">SHARE 5-LETTER CODE:</p>
             <div id="sandbox-code-display" class="upi-box" style="font-size: 22px; color: #ff9b13; letter-spacing: 4px;">-----</div>
-            <p id="sandbox-host-status-sub" style="font-size: 8px; color: #8edc3a; margin-top:15px;">WAITING FOR GUEST OPERATOR...</p>
+            
+            <p style="font-size: 9px; color: #00beff; margin-top:15px; margin-bottom: 8px;">CONNECTED OPERATORS:</p>
+            <div id="sandbox-player-list-box" class="pixel-card" style="padding:10px; background:#040810; margin-bottom:15px;">
+            </div>
+
+            <p id="sandbox-host-status-sub" style="font-size: 8px; color: #8edc3a;">WAITING FOR ALL OPERATORS...</p>
         </div>
-        <button class="pixel-btn red compact" style="margin-top:20px;" onclick="disconnectPeer()">CANCEL</button>
+        <button class="pixel-btn green" id="sandbox-start-btn" style="margin-top:15px; display:none;" onclick="hostStartSandboxMatch()">START GAME ⚔️</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
     <div id="sandbox-join-screen" class="screen">
-        <h2 class="screen-title">JOIN PRIVATE</h2>
+        <h2 class="screen-title">JOIN PRIVATE ROOM</h2>
         <div class="pixel-card input-card" style="display: flex; flex-direction: column; gap: 15px;">
             <input type="text" id="sandbox-client-name" placeholder="GUEST NAME" maxlength="10" value="GUEST">
             <input type="text" id="sandbox-input-code" placeholder="ENTER 5-CHAR CODE" maxlength="5" style="text-transform: uppercase;">
         </div>
         <button class="pixel-btn green" style="margin-top:20px;" onclick="connectSandboxHost()">CONNECT ROOM</button>
-        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-menu-screen')">BACK</button>
+        <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-action-screen')">BACK</button>
     </div>
 
-    
+    <div id="sandbox-guest-lobby-screen" class="screen">
+        <h2 class="screen-title">WAITING FOR HOST</h2>
+        <div class="pixel-card">
+            <div class="spinning-dice">⚔️</div>
+            <p style="font-size: 9px; color: #00beff; margin-top:15px; margin-bottom: 8px;">CONNECTED OPERATORS:</p>
+            <div id="sandbox-guest-list-box" class="pixel-card" style="padding:10px; background:#040810; margin-bottom:15px;">
+            </div>
+            <p style="font-size: 8px; color: #ff9b13;">WAITING FOR HOST TO START...</p>
+        </div>
+        <button class="pixel-btn red compact" style="margin-top:20px;" onclick="disconnectPeer()">LEAVE</button>
+    </div>
+
     <div id="matchmaking-screen" class="screen">
         <h2 class="screen-title" id="match-status-text">INITIALIZING...</h2>
         <div class="pixel-card">
@@ -122,7 +169,6 @@
         <button class="pixel-btn red compact" style="margin-top:25px;" onclick="disconnectPeer()">CANCEL</button>
     </div>
 
-    
     <div id="game-screen" class="screen large-layout">
         <div id="match-startup-notice" class="hide" style="position: absolute; top: 12%; left: 50%; transform: translateX(-50%); background: #0c1626; border: 4px solid #ff9b13; padding: 12px; width: 85%; max-width: 400px; text-align: center; z-index: 3000; box-shadow: 6px 6px 0px #000;">
             <h3 style="color: #ff9b13; margin: 0 0 6px 0; font-size: 10px; font-family: 'Press Start 2P', monospace;">⚠️ MATCH RULES</h3>
@@ -138,17 +184,16 @@
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
         </div>
 
-        <div class="pixel-board-wrap">
+        <div class="pixel-board-wrap" id="board-container">
             <div id="game-board"></div>
         </div>
 
         <div class="live-turn-console">
             <div id="bottom-turn-banner" class="turn-highlight-banner">YOUR TURN</div>
-            <div id="game-live-notice" class="action-logs-footer">REACH THE OPPOSITE GLOW ROW TO WIN!</div>
+            <div id="game-live-notice" class="action-logs-footer">REACH YOUR OPPOSITE GLOW EDGE TO WIN!</div>
         </div>
     </div>
 
-    
     <div id="victory-screen" class="screen">
         <canvas id="firecracker-canvas"></canvas>
         <div class="victory-content pixel-card" id="victory-card-box">
@@ -161,7 +206,6 @@
         </div>
     </div>
 
-    <!-- ABOUT SECTION HAI SALE CHOR INSPECTION DALLE -->
     <div id="about-modal" class="modal-overlay">
         <div class="modal-card pixel-card">
             <h2 style="color: #00beff; font-size: 1.1rem; margin-bottom: 15px;">ABOUT ME</h2>
@@ -172,7 +216,6 @@
         </div>
     </div>
 
-    <!-- CONTACT MODAL HAI BC -->
     <div id="contact-modal" class="modal-overlay">
         <div class="modal-card pixel-card">
             <h2 style="color: #8edc3a; font-size: 1.1rem; margin-bottom: 15px;">CONTACT HQS</h2>
@@ -184,7 +227,6 @@
         </div>
     </div>
 
-    <!-- DONATION BOX BHIK KA BOX HAI -->
     <div id="donation-modal" class="modal-overlay">
         <div class="modal-card pixel-card" style="border-color: #ff9b13 !important; max-width: 320px !important; width: 90% !important; margin: auto !important;">
             <h2 style="color: #ff9b13 !important; font-size: 1rem !important; margin-bottom: 10px !important;">DONATION BOX</h2>
