@@ -1,4 +1,4 @@
-const MAINTENANCE_SWITCH = false; 
+const MAINTENANCE_SWITCH = true; 
 
 let GRID_SIZE = 8; 
 let TOTAL_PLAYERS = 2; 
