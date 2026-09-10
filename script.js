@@ -1,13 +1,13 @@
-const MAINTENANCE_SWITCH = true; 
+const MAINTENANCE_SWITCH = false; 
 
 let GRID_SIZE = 8; 
 let TOTAL_PLAYERS = 2; 
 
 const PLAYER_COLORS = {
-    p1: '#ff5252', 
-    p2: '#00beff', 
-    p3: '#8edc3a', 
-    p4: '#ff9b13'  
+    p1: '#ff5252', // Red
+    p2: '#00beff', // Blue
+    p3: '#8edc3a', // Green
+    p4: '#ff9b13'  // Yellow
 };
 
 const PLAYER_NAMES_DEFAULT = {
@@ -416,10 +416,10 @@ function setupFreshMatch() {
     if (TOTAL_PLAYERS === 4) {
         turnOrder = ['p1', 'p2', 'p3', 'p4'];
         playerPieces = {
-            p1: { r: 10, c: 5 }, 
-            p2: { r: 0, c: 5 },  
-            p3: { r: 5, c: 0 },  
-            p4: { r: 5, c: 10 }  
+            p1: { r: 10, c: 5 }, // Red Bottom
+            p2: { r: 0, c: 5 },  // Blue Top
+            p3: { r: 5, c: 0 },  // Green Left
+            p4: { r: 5, c: 10 }  // Yellow Right
         };
     } else {
         turnOrder = ['p1', 'p2'];
@@ -429,7 +429,10 @@ function setupFreshMatch() {
         };
     }
 
-    turnOrder.sort(() => Math.random() - 0.5);
+    if(gameMode === 'pass') {
+        turnOrder.sort(() => Math.random() - 0.5);
+    }
+
     activeTurn = turnOrder[0];
 
     hWalls = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -487,6 +490,14 @@ function renderEngine() {
     if (!board) return; 
     board.innerHTML = '';
 
+    // Perspective Rotation: Position active player at the bottom
+    let rotDegree = 0;
+    if (myRole === 'p2') rotDegree = 180;
+    else if (myRole === 'p3') rotDegree = 90;
+    else if (myRole === 'p4') rotDegree = 270;
+    
+    board.style.transform = `rotate(${rotDegree}deg)`;
+
     let totalGridColumns = (GRID_SIZE * 2) - 1;
     let totalGridRows = (GRID_SIZE * 2) - 1;
 
@@ -529,6 +540,8 @@ function renderEngine() {
                         let piece = document.createElement('div');
                         piece.className = 'game-piece'; 
                         piece.style.backgroundColor = PLAYER_COLORS[pKey];
+                        // Counter-rotate piece to remain upright visually
+                        piece.style.transform = `rotate(-${rotDegree}deg)`;
                         cell.appendChild(piece);
                     }
                 }
@@ -592,6 +605,8 @@ function handleWallClick(type, r, c) {
 
 function isLegalMoveTarget(turn, tarR, tarC) {
     let loc = playerPieces[turn];
+    if (!loc) return false;
+
     let dr = tarR - loc.r; 
     let dc = tarC - loc.c;
     let absDr = Math.abs(dr); 
@@ -768,7 +783,7 @@ function evaluateTurnShiftOffline(shouldTriggerAI = true) {
     renderEngine();
     
     if(gameMode === 'ai' && activeTurn !== 'p1' && shouldTriggerAI) { 
-        setTimeout(executeAdvancedEngineAI, 400); 
+        setTimeout(executeAdvancedEngineAI, 450); 
     }
 }
 
@@ -822,17 +837,80 @@ function enumerateWallCandidates() {
     return candidates;
 }
 
+// Highly Competitive BFS/A* Strategic AI Engine
 function executeAdvancedEngineAI() {
-    let actionTaken = false;
     let botRole = activeTurn;
+    let botLoc = playerPieces[botRole];
+    if (!botLoc) return;
 
+    let myCurrentPathDist = getShortestPathDistance(botRole, botLoc);
+
+    // Identify primary opponent (closest to winning goal)
+    let primaryOpponent = null;
+    let minOppDist = Infinity;
+    for (let pKey in playerPieces) {
+        if (pKey !== botRole) {
+            let dist = getShortestPathDistance(pKey, playerPieces[pKey]);
+            if (dist < minOppDist) {
+                minOppDist = dist;
+                primaryOpponent = pKey;
+            }
+        }
+    }
+
+    let bestWallChoice = null;
+    let maxOpponentDelay = 0;
+
+    // Strategic wall placement check (if opponent is near or difficulty is set high)
+    if (primaryOpponent && (minOppDist <= 5 || aiDifficulty === 'god' || aiDifficulty === 'hacker')) {
+        let walls = enumerateWallCandidates();
+        // Sample candidate walls for efficiency
+        let sampledWalls = walls.sort(() => 0.5 - Math.random()).slice(0, 35);
+
+        for (let wall of sampledWalls) {
+            if (wall.type === 'h') hWalls[wall.r][wall.c] = PLAYER_COLORS[botRole];
+            else vWalls[wall.r][wall.c] = PLAYER_COLORS[botRole];
+
+            let pathValid = true;
+            for (let pKey in playerPieces) {
+                if (!hasValidPathForPlayer(pKey)) {
+                    pathValid = false;
+                    break;
+                }
+            }
+
+            if (pathValid) {
+                let newOppDist = getShortestPathDistance(primaryOpponent, playerPieces[primaryOpponent]);
+                let myNewDist = getShortestPathDistance(botRole, botLoc);
+                let delay = newOppDist - minOppDist;
+                let penalty = myNewDist - myCurrentPathDist;
+
+                if (delay > 0 && penalty <= 0 && delay > maxOpponentDelay) {
+                    maxOpponentDelay = delay;
+                    bestWallChoice = wall;
+                }
+            }
+
+            // Revert candidate wall
+            if (wall.type === 'h') hWalls[wall.r][wall.c] = null;
+            else vWalls[wall.r][wall.c] = null;
+        }
+    }
+
+    // Execute wall placement if optimal trap/block found
+    if (bestWallChoice && maxOpponentDelay > 0) {
+        if (bestWallChoice.type === 'h') hWalls[bestWallChoice.r][bestWallChoice.c] = PLAYER_COLORS[botRole];
+        else vWalls[bestWallChoice.r][bestWallChoice.c] = PLAYER_COLORS[botRole];
+        evaluateTurnShiftOffline(true);
+        return;
+    }
+
+    // Otherwise, move piece along the shortest path towards goal
     let legalMoves = [];
-    let loc = playerPieces[botRole];
     let dirs = [{r:-1, c:0}, {r:1, c:0}, {r:0, c:-1}, {r:0, c:1}];
-
     for (let d of dirs) {
-        let nr = loc.r + d.r;
-        let nc = loc.c + d.c;
+        let nr = botLoc.r + d.r;
+        let nc = botLoc.c + d.c;
         if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
             if (isLegalMoveTarget(botRole, nr, nc)) {
                 legalMoves.push({ r: nr, c: nc });
@@ -843,20 +921,21 @@ function executeAdvancedEngineAI() {
     if (legalMoves.length > 0) {
         legalMoves.sort((a, b) => getShortestPathDistance(botRole, a) - getShortestPathDistance(botRole, b));
         playerPieces[botRole] = legalMoves[0];
-        actionTaken = true;
-    }
-
-    if (!actionTaken) {
+    } else {
+        // Fallback random wall placement if trapped/no legal moves
         let walls = enumerateWallCandidates();
-        if (walls.length > 0) {
-            let cand = walls[Math.floor(Math.random() * walls.length)];
-            if (cand.type === 'h') hWalls[cand.r][cand.c] = PLAYER_COLORS[botRole];
-            else vWalls[cand.r][cand.c] = PLAYER_COLORS[botRole];
-            actionTaken = true;
+        for (let wall of walls) {
+            if (wall.type === 'h') hWalls[wall.r][wall.c] = PLAYER_COLORS[botRole];
+            else vWalls[wall.r][wall.c] = PLAYER_COLORS[botRole];
+            
+            if (hasValidPathForPlayer(botRole)) break;
+            
+            if (wall.type === 'h') hWalls[wall.r][wall.c] = null;
+            else vWalls[wall.r][wall.c] = null;
         }
     }
 
-    evaluateTurnShiftOffline(false);
+    evaluateTurnShiftOffline(true);
 }
 
 function startCelebrationCanvas() {
