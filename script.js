@@ -4,10 +4,10 @@ let GRID_SIZE = 8;
 let TOTAL_PLAYERS = 2; 
 
 const PLAYER_COLORS = {
-    p1: '#ff5252', // Red
-    p2: '#00beff', // Blue
-    p3: '#8edc3a', // Green
-    p4: '#ff9b13'  // Yellow
+    p1: '#ff5252',
+    p2: '#00beff', 
+    p3: '#8edc3a', 
+    p4: '#ff9b13'
 };
 
 const PLAYER_NAMES_DEFAULT = {
@@ -451,9 +451,9 @@ function triggerTimedRuleNotice() {
 
     let text = `${TOTAL_PLAYERS} PLAYERS ARENA LOADED.\n\n`;
     if(TOTAL_PLAYERS === 4) {
-        text += "🔴 RED | 🔵 BLUE | 🟢 GREEN | 🟡 YELLOW\n🎯 FIRST TO REACH THE CENTER WINNING POINT WINS!\n\n";
+        text += " RED | BLUE |  GREEN | YELLOW\n FIRST TO REACH THE CENTER WINNING POINT WINS!\n\n";
     }
-    text += "💥 MATRIX RECONFIGURED: INFINITE WALL DEPLOYMENT!";
+    text += " MATRIX RECONFIGURED: INFINITE WALL DEPLOYMENT!";
     
     noticeText.innerText = text;
     noticeBox.classList.remove('hide');
@@ -837,7 +837,6 @@ function enumerateWallCandidates() {
     return candidates;
 }
 
-// Highly Competitive BFS/A* Strategic AI Engine
 function executeAdvancedEngineAI() {
     let botRole = activeTurn;
     let botLoc = playerPieces[botRole];
@@ -845,7 +844,7 @@ function executeAdvancedEngineAI() {
 
     let myCurrentPathDist = getShortestPathDistance(botRole, botLoc);
 
-    // Identify primary opponent (closest to winning goal)
+   
     let primaryOpponent = null;
     let minOppDist = Infinity;
     for (let pKey in playerPieces) {
@@ -861,7 +860,7 @@ function executeAdvancedEngineAI() {
     let bestWallChoice = null;
     let maxOpponentDelay = 0;
 
-    // Strategic wall placement check (if opponent is near or difficulty is set high)
+    
     if (primaryOpponent && (minOppDist <= 5 || aiDifficulty === 'god' || aiDifficulty === 'hacker')) {
         let walls = enumerateWallCandidates();
         // Sample candidate walls for efficiency
@@ -891,13 +890,13 @@ function executeAdvancedEngineAI() {
                 }
             }
 
-            // Revert candidate wall
+           
             if (wall.type === 'h') hWalls[wall.r][wall.c] = null;
             else vWalls[wall.r][wall.c] = null;
         }
     }
 
-    // Execute wall placement if optimal trap/block found
+   
     if (bestWallChoice && maxOpponentDelay > 0) {
         if (bestWallChoice.type === 'h') hWalls[bestWallChoice.r][bestWallChoice.c] = PLAYER_COLORS[botRole];
         else vWalls[bestWallChoice.r][bestWallChoice.c] = PLAYER_COLORS[botRole];
@@ -905,7 +904,7 @@ function executeAdvancedEngineAI() {
         return;
     }
 
-    // Otherwise, move piece along the shortest path towards goal
+ 
     let legalMoves = [];
     let dirs = [{r:-1, c:0}, {r:1, c:0}, {r:0, c:-1}, {r:0, c:1}];
     for (let d of dirs) {
@@ -922,7 +921,7 @@ function executeAdvancedEngineAI() {
         legalMoves.sort((a, b) => getShortestPathDistance(botRole, a) - getShortestPathDistance(botRole, b));
         playerPieces[botRole] = legalMoves[0];
     } else {
-        // Fallback random wall placement if trapped/no legal moves
+   
         let walls = enumerateWallCandidates();
         for (let wall of walls) {
             if (wall.type === 'h') hWalls[wall.r][wall.c] = PLAYER_COLORS[botRole];
