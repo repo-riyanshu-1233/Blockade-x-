@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <div id="game-toast" class="toast-popup hide">⚠️ SYSTEM ACTIVE</div>
+    <div id="game-toast" class="toast-popup hide">SYSTEM ACTIVE</div>
 
     <div id="menu-screen" class="screen">
         <h1 class="game-title">BLOCKADE X</h1>
@@ -31,7 +31,7 @@
         
         <div class="menu-buttons">
             <button class="pixel-btn green" onclick="showScreen('pass-select-screen')">PASS & PLAY</button>
-            <button class="pixel-btn blue" onclick="showScreen('ai-mode-select-screen')">VS AI ROBOT 🤖</button>
+            <button class="pixel-btn blue" onclick="showScreen('ai-mode-select-screen')">VS AI BOT</button>
             <button class="pixel-btn red" onclick="showScreen('online-mode-select-screen')">ONLINE PVP (RANDOM)</button>
             <button class="pixel-btn grey" style="background:#1c3254" onclick="showScreen('sandbox-menu-screen')">SANDBOX ROOM</button>
         </div>
@@ -71,8 +71,8 @@
             <button class="pixel-btn green" onclick="launchAIGame('beginner')">SMART</button>
             <button class="pixel-btn blue" onclick="launchAIGame('intermediate')">NORMAL</button>
             <button class="pixel-btn orange" onclick="launchAIGame('pro')">BEGINNER</button>
-            <button class="pixel-btn red" onclick="launchAIGame('god')">NOOB</button>
-            <button class="pixel-btn hacker-cyber" onclick="launchAIGame('hacker')">NOOB 2</button>
+            <button class="pixel-btn red" onclick="launchAIGame('god')">UB</button>
+            <button class="pixel-btn hacker-cyber" onclick="launchAIGame('hacker')">UB</button>
             <button class="pixel-btn compact grey" style="margin-top:10px;" onclick="showScreen('ai-mode-select-screen')">BACK</button>
         </div>
     </div>
@@ -91,7 +91,7 @@
         <div class="pixel-card input-card">
             <input type="text" id="online-player-name" placeholder="YOUR NAME" maxlength="10" value="PLAYER">
         </div>
-        <button class="pixel-btn orange" style="margin-top:20px;" onclick="submitNameAndFindMatch()">FIND MATCH ⚔️</button>
+        <button class="pixel-btn orange" style="margin-top:20px;" onclick="submitNameAndFindMatch()">FIND MATCH</button>
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('online-mode-select-screen')">BACK</button>
     </div>
 
@@ -118,7 +118,7 @@
         <div class="pixel-card input-card">
             <input type="text" id="sandbox-host-name" placeholder="HOST NAME" maxlength="10" value="HOST">
         </div>
-        <button class="pixel-btn green" style="margin-top:20px;" onclick="submitSandboxHostAndGenerate()">GENERATE CODE 🚀</button>
+        <button class="pixel-btn green" style="margin-top:20px;" onclick="submitSandboxHostAndGenerate()">GENERATE CODE </button>
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="showScreen('sandbox-action-screen')">BACK</button>
     </div>
 
@@ -128,11 +128,11 @@
             <p style="font-size: 10px; margin-bottom: 15px;">SHARE 5-LETTER CODE:</p>
             <div id="sandbox-code-display" class="upi-box" style="font-size: 22px; color: #ff9b13; letter-spacing: 4px;">-----</div>
             
-            <p style="font-size: 9px; color: #00beff; margin-top:15px; margin-bottom: 8px;">CONNECTED OPERATORS:</p>
+            <p style="font-size: 9px; color: #00beff; margin-top:15px; margin-bottom: 8px;">CONNECTED PLAYERS:</p>
             <div id="sandbox-player-list-box" class="pixel-card" style="padding:10px; background:#040810; margin-bottom:15px;">
             </div>
 
-            <p id="sandbox-host-status-sub" style="font-size: 8px; color: #8edc3a;">WAITING FOR ALL OPERATORS...</p>
+            <p id="sandbox-host-status-sub" style="font-size: 8px; color: #8edc3a;">WAITING FOR ALL PLAYERS...</p>
         </div>
         <button class="pixel-btn green" id="sandbox-start-btn" style="margin-top:15px; display:none;" onclick="hostStartSandboxMatch()">START GAME ⚔️</button>
         <button class="pixel-btn red compact" style="margin-top:15px;" onclick="disconnectPeer()">CANCEL</button>
@@ -152,7 +152,7 @@
         <h2 class="screen-title">WAITING FOR HOST</h2>
         <div class="pixel-card">
             <div class="spinning-dice">⚔️</div>
-            <p style="font-size: 9px; color: #00beff; margin-top:15px; margin-bottom: 8px;">CONNECTED OPERATORS:</p>
+            <p style="font-size: 9px; color: #00beff; margin-top:15px; margin-bottom: 8px;">CONNECTED PLAYERS:</p>
             <div id="sandbox-guest-list-box" class="pixel-card" style="padding:10px; background:#040810; margin-bottom:15px;">
             </div>
             <p style="font-size: 8px; color: #ff9b13;">WAITING FOR HOST TO START...</p>
@@ -178,7 +178,7 @@
         <div class="game-header">
             <div class="score-tag-retro" id="identity-tag" style="max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">YOUR COLOR: --</div>
             <div id="wall-counter-display" style="font-size: 7px; color: #ffffff; background: #12213a; padding: 6px 10px; border: 2px dashed #ff5252;">
-                ⚠️ WALLS: INFINITE
+                WALLS: INFINITE
             </div>
             <div class="timer-box" id="match-timer-display">TIME: 30s</div>
             <button class="pixel-btn red compact" onclick="confirmExit()">QUIT</button>
@@ -218,7 +218,7 @@
 
     <div id="contact-modal" class="modal-overlay">
         <div class="modal-card pixel-card">
-            <h2 style="color: #8edc3a; font-size: 1.1rem; margin-bottom: 15px;">CONTACT HQS</h2>
+            <h2 style="color: #8edc3a; font-size: 1.1rem; margin-bottom: 15px;">CONTACT</h2>
             <div class="contact-links">
                 <a href="mailto:riyanshusinh@gmail.com" class="contact-item email" style="color: white; text-decoration: none; display: block; margin: 10px 0; font-size: 0.7rem;">📩 EMAIL US</a>
                 <a href="https://instagram.com/riyanshu_1233" target="_blank" class="contact-item instagram" style="color: white; text-decoration: none; display: block; margin: 10px 0; font-size: 0.7rem;">📸 INSTAGRAM</a>
@@ -231,13 +231,13 @@
         <div class="modal-card pixel-card" style="border-color: #ff9b13 !important; max-width: 320px !important; width: 90% !important; margin: auto !important;">
             <h2 style="color: #ff9b13 !important; font-size: 1rem !important; margin-bottom: 10px !important;">DONATION BOX</h2>
             <p style="font-size: 0.6rem !important; color: #7f8fa4 !important; line-height: 1.6 !important; margin-bottom: 15px !important;">
-                IF YOU LOVED THE EXPERIENCE PLEASE SHOW YOUR LOVE BY DONATING ME, CONSIDER SUPPORTING THE SERVER AND DEV COSTS!.
+                IF YOU LOVED THE EXPERIENCE PLEASE SHOW YOUR LOVE BY DONATING ME, CONSIDER SUPPORTING THE SERVER AND DEVLOPER COSTS!.
             </p> 
             <div class="qr-code-holder" style="background: white !important; padding: 10px !important; width: 140px !important; height: 140px !important; max-width: 140px !important; max-height: 140px !important; margin: 0 auto 10px auto !important; border-radius: 4px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important;">
                 <img src="image/qr.png" alt="UPI QR CODE" style="width: 120px !important; height: 120px !important; object-fit: contain !important;">
             </div>
             <div style="font-size: 8px !important; color: #ff9b13 !important; margin-bottom: 15px !important;">[ SCAN UPI QR CODE ]</div>
-            <div class="upi-box" id="upi-string-display" style="font-size: 0.6rem !important; word-break: break-all !important;">UPI ID: chauhanriyanshu1233</div>
+            <div class="upi-box" id="upi-string-display" style="font-size: 0.6rem !important; word-break: break-all !important;">UPI ID: chauhanriyanshu@fam</div>
             <button class="pixel-btn red compact" style="margin-top: 10px !important;" onclick="toggleModal('donation-modal', false)">CLOSE</button>
         </div>
     </div>
