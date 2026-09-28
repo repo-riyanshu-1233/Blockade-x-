@@ -416,10 +416,10 @@ function setupFreshMatch() {
     if (TOTAL_PLAYERS === 4) {
         turnOrder = ['p1', 'p2', 'p3', 'p4'];
         playerPieces = {
-            p1: { r: 10, c: 5 }, // Red Bottom
-            p2: { r: 0, c: 5 },  // Blue Top
-            p3: { r: 5, c: 0 },  // Green Left
-            p4: { r: 5, c: 10 }  // Yellow Right
+            p1: { r: 10, c: 5 },
+            p2: { r: 0, c: 5 }, 
+            p3: { r: 5, c: 0 },  
+            p4: { r: 5, c: 10 }  
         };
     } else {
         turnOrder = ['p1', 'p2'];
@@ -490,7 +490,7 @@ function renderEngine() {
     if (!board) return; 
     board.innerHTML = '';
 
-    // Perspective Rotation: Position active player at the bottom
+
     let rotDegree = 0;
     if (myRole === 'p2') rotDegree = 180;
     else if (myRole === 'p3') rotDegree = 90;
@@ -540,7 +540,7 @@ function renderEngine() {
                         let piece = document.createElement('div');
                         piece.className = 'game-piece'; 
                         piece.style.backgroundColor = PLAYER_COLORS[pKey];
-                        // Counter-rotate piece to remain upright visually
+                    
                         piece.style.transform = `rotate(-${rotDegree}deg)`;
                         cell.appendChild(piece);
                     }
